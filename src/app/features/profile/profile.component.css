@@ -120,6 +120,82 @@ input:focus {
   cursor: not-allowed;
 }
 
+.secondary {
+  align-self: flex-start;
+  padding: 0.7rem 1.2rem;
+  border: 1px solid #cbd5f5;
+  border-radius: 0.5rem;
+  background: #ffffff;
+  color: #334155;
+  font: inherit;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.secondary:hover:not(:disabled) {
+  background: #f8fafc;
+}
+
+.secondary:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.drive-status {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.drive-heading {
+  display: flex;
+  gap: 0.75rem;
+  align-items: center;
+}
+
+.status-dot {
+  width: 0.75rem;
+  height: 0.75rem;
+  border-radius: 999px;
+  background: #cbd5f5;
+}
+
+.status-dot--linked {
+  background: #16a34a;
+}
+
+.status-dot--error {
+  background: #dc2626;
+}
+
+.drive-title {
+  margin: 0;
+  color: #0f172a;
+  font-weight: 700;
+}
+
+.drive-state {
+  margin: 0.15rem 0 0;
+  color: #64748b;
+  font-size: 0.875rem;
+}
+
+.drive-details a {
+  color: #4f46e5;
+}
+
+.drive-actions {
+  display: flex;
+  gap: 0.75rem;
+}
+
+.drive-hint {
+  margin: 0;
+  color: #64748b;
+  font-size: 0.85rem;
+  line-height: 1.5;
+}
+
 @media (min-width: 640px) {
   .details {
     grid-template-columns: repeat(2, 1fr);

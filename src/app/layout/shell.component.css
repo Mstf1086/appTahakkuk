@@ -3,6 +3,12 @@
   min-height: 100vh;
 }
 
+.shell {
+  display: flex;
+  flex-direction: column;
+  min-height: 100vh;
+}
+
 .topbar {
   position: sticky;
   top: 0;
@@ -224,6 +230,7 @@
 }
 
 .content {
+  flex: 1 0 auto;
   padding: 1.25rem;
 }
 

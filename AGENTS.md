@@ -4,7 +4,7 @@
 
 This repository contains an **Angular 22** single-page application named **Tahakkuk**. Users sign in with **Firebase Authentication** (email/password) and then reach a protected area with a **dashboard**, a **profile** page, and a **logout** action.
 
-The **Damga Vergisi Hesaplama** module (`/modules/stamp-tax`) is intentionally public: guests can open it from the login screen or by URL without signing in. Every other feature route stays behind `authGuard`.
+The **Damga Vergisi Hesaplama** module (`/modules/stamp-tax`) is intentionally public: guests can open it from the dashboard module card or by URL without signing in. Every other feature route stays behind `authGuard`.
 
 The navigation adapts to the viewport: on desktop (≥ 900px) the menu sits in the top bar; on mobile the menu opens as a slide-in panel from the left.
 
@@ -114,12 +114,13 @@ These rules exist to keep the context window small while still delivering verifi
 - `src/app/core/auth.guard.ts` — route guard that redirects unauthenticated users to `/login?returnUrl=...`.
 - `src/app/core/auth-errors.ts` — maps Firebase error codes to Turkish messages.
 - `src/app/core/seo.service.ts` — sets the page title, meta description/keywords, Open Graph, Twitter Card, and the canonical link for the active page.
+- `src/app/core/google-drive.service.ts` — Google Identity Services token flow (`VITE_GOOGLE_CLIENT_ID`, scopes `drive.file` + `email` + `profile`) and Drive API v3 folder creation (`tahakkuk.web.app`); connection info lives in `sessionStorage`.
 - `src/app/core/app-info.ts` — exports `APP_VERSION`, read from `package.json`; the footer renders it.
-- `src/app/layout/shell.component.*` — responsive frame: top navigation on desktop, slide-in sidebar on mobile.
+- `src/app/layout/shell.component.*` — responsive frame: flex column with `min-height: 100vh`, so the footer pins to the viewport bottom while content grows; top navigation on desktop, slide-in sidebar on mobile.
 - `src/app/layout/footer.component.*` — application footer showing the app name, copyright, and the current version (no navigation links).
-- `src/app/features/login/*` — login and account creation form; also hosts the guest entry card for the public module.
+- `src/app/features/login/*` — login and account creation form (no module cards).
 - `src/app/features/dashboard/*` — dashboard page; contains only the module card grid (5 modules per row on desktop), no summary cards or activity panel.
-- `src/app/features/profile/*` — profile details and display name editing.
+- `src/app/features/profile/*` — profile details, display name editing, and the "Bağlı hesaplar" panel (Google Drive link status and account info).
 - `src/app/features/modules/stamp-tax/*` — public damga vergisi hesaplama module (damga vergisi kesintisi, KDV dahil fatura bedeli, ödenecek tutar).
 - `src/environments/environment.ts` — generated from `.env`; never edit or commit it.
 - `scripts/generate-env.mjs` — reads `.env` and writes `src/environments/environment.ts`.
@@ -142,9 +143,11 @@ These rules exist to keep the context window small while still delivering verifi
 
 - **The dashboard is the default page for everyone.** `/` redirects to `/dashboard`, and the dashboard route is public: guests see the module grid. Only `/profile` stays behind `authGuard`.
 - **Profile is invisible to guests.** The "Profil" entry exists only in the top menu and the mobile sidebar for signed-in users; the footer contains no navigation links at all (brand, copyright, version only).
-- **The damga vergisi module is a guest feature.** `/modules/stamp-tax` is a child route of the shell, so the top menu and footer stay visible for both guests and signed-in users; it is linked from the dashboard module grid and from the login screen.
-- **The module must not be listed in the top menu or the mobile sidebar.** It is reachable only from the dashboard card and the login screen card.
-- New public modules follow the same shape: a child route of the shell (so the frame stays consistent), a guest-friendly header with a "Giriş yap" entry, and a card on the dashboard and login pages.
+- **The damga vergisi module is a guest feature.** `/modules/stamp-tax` is a child route of the shell, so the top menu and footer stay visible for both guests and signed-in users; it is linked from the dashboard module grid only.
+- **The module must not be listed in the top menu or the mobile sidebar.** It is reachable only from the dashboard card (never from the login screen or the menus).
+- New public modules follow the same shape: a child route of the shell (so the frame stays consistent), a guest-friendly header with a "Giriş yap" entry, and a card on the dashboard.
+- **Google Drive linking requires a signed-in Firebase user and `VITE_GOOGLE_CLIENT_ID`.** Keep token handling inside `GoogleDriveService`; components only call `connect()` / `disconnect()` and render `status`, `info`, `error`. Never request the broad `drive` scope — `drive.file` only — and never persist tokens beyond `sessionStorage`.
+- The shell layout must keep the footer pinned to the bottom: `.shell` is a flex column with `min-height: 100vh`, `.content { flex: 1 0 auto; }`, `.footer { margin-top: auto; }`. Do not add fixed positioning to the footer.
 - Calculation rules for the module: damga vergisi kesintisi = KDV hariç fatura bedeli × 9,48/1000; KDV dahil fatura bedeli = KDV hariç bedel + KDV bedeli; ödenecek tutar = KDV dahil fatura bedeli − damga vergisi kesintisi − tevkifat kesintisi. KDV bedeli and tevkifat kesintisi are manual inputs.
 - Never invent modules, cards, or dashboard entries for functionality that does not exist; show only implemented features. The dashboard intentionally contains only real module cards — no placeholder summary cards or activity list.
 - Every new route sets a Turkish `title` in `app.routes.ts` and calls `SeoService.setPage()` with a unique description.
@@ -152,7 +155,7 @@ These rules exist to keep the context window small while still delivering verifi
 ## Environment variables
 
 - The source of truth is the local `.env` file; it is git-ignored and must never be committed.
-- `.env.example` is the committed template and uses the same `VITE_FIREBASE_*` keys.
+- `.env.example` is the committed template and uses the same `VITE_FIREBASE_*` and `VITE_GOOGLE_CLIENT_ID` keys.
 - `scripts/generate-env.mjs` parses `.env` and generates the typed `environment.ts` consumed by the app.
 - Angular does not read `.env` natively, so the generation step must run before any build, serve, or test command.
 
@@ -164,6 +167,13 @@ These rules exist to keep the context window small while still delivering verifi
 - `authGuard` protects the shell route, so `/dashboard` and `/profile` redirect to `/login?returnUrl=...` when there is no session.
 - Error codes from Firebase are translated to Turkish in `src/app/core/auth-errors.ts`; add new codes there instead of showing raw messages.
 
+## Google Drive
+
+- Requires a signed-in Firebase user and `VITE_GOOGLE_CLIENT_ID` (Google Cloud OAuth Web client with `http://localhost:4200` and the deployment origin in **Authorized JavaScript origins**; **Google Drive API** enabled).
+- Scope is `https://www.googleapis.com/auth/drive.file` plus `email`/`profile` — never the broad `drive` scope.
+- On connect the service fetches the Google account email, then finds or creates the `tahakkuk.web.app` folder in the user's Drive root and stores `{ uid, email, folderId, folderUrl, connectedAt }` in `sessionStorage` only.
+- All token/folder logic stays in `src/app/core/google-drive.service.ts`; the profile page only renders `status` / `info` / `error` and calls `connect()` / `disconnect()`.
+
 ## Testing instructions
 
 - Tests use Vitest (Angular's `unit-test` builder) and live next to the source as `*.spec.ts`.
@@ -173,6 +183,7 @@ These rules exist to keep the context window small while still delivering verifi
 - Assertions should target rendered output, not private component internals.
 - Components that inject `AuthService` must be tested with a stub provider (`{ user: signal(null) }`), not the real Firebase service.
 - Route-level access rules belong in `src/app/app.routes.spec.ts` using `RouterTestingHarness`.
+- Components that inject `GoogleDriveService` must be tested with a stub provider (`{ status: signal('disconnected'), busy: signal(false), error: signal(''), info: signal(null), isLinked: signal(false), connect: vi.fn(), disconnect: vi.fn() }`), not the real GIS flow.
 
 ## Security considerations
 

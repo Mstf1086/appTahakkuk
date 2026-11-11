@@ -2,6 +2,7 @@ import { ChangeDetectionStrategy, Component, inject, signal } from '@angular/cor
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { AuthService } from '../../core/auth.service';
 import { toAuthErrorMessage } from '../../core/auth-errors';
+import { GoogleDriveService } from '../../core/google-drive.service';
 import { SeoService } from '../../core/seo.service';
 
 @Component({
@@ -15,11 +16,13 @@ export class ProfileComponent {
   private readonly formBuilder = inject(FormBuilder);
   private readonly authService = inject(AuthService);
   private readonly seoService = inject(SeoService);
+  readonly drive = inject(GoogleDriveService);
 
   constructor() {
     this.seoService.setPage({
       title: 'Profil | Tahakkuk',
-      description: 'Tahakkuk hesabınızın profil bilgilerini görüntüleyin ve güncelleyin.',
+      description:
+        'Tahakkuk hesabınızın profil bilgilerini görüntüleyin, güncelleyin ve bağlı Google Drive hesabı durumunu izleyin.',
       path: '/profile',
     });
   }
@@ -43,7 +46,16 @@ export class ProfileComponent {
     }).format(new Date(value));
   }
 
-  async save(): Promise<void> {    if (this.form.invalid || this.saving()) {
+  async connectDrive(): Promise<void> {
+    await this.drive.connect();
+  }
+
+  disconnectDrive(): void {
+    this.drive.disconnect();
+  }
+
+  async save(): Promise<void> {
+    if (this.form.invalid || this.saving()) {
       return;
     }
 

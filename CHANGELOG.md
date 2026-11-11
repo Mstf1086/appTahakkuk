@@ -7,7 +7,31 @@ sürümler [Semantic Versioning](https://semver.org/lang/tr/) kurallarına uyar.
 son bileşeni bir artırılır (`0.0.1` → `0.0.2`); `0.0` (major.minor) kısmı yalnızca proje sahibi
 istediğinde değiştirilir.
 
-## [0.0.4] - 2026-11-11
+## [0.0.5] - 2026-11-11
+
+### Eklenen
+
+- **Google Drive bağlama modülü** (`src/app/core/google-drive.service.ts`): giriş yapmış kullanıcı
+  Google hesabıyla yetki verir; `drive.file` kapsamı sayesinde kullanıcının Drive'ında
+  `tahakkuk.web.app` adlı klasör otomatik oluşturulur (varsa mevcut klasör bulunur, tekrar
+  oluşturulmaz).
+- Profil sayfasında **Bağlı hesaplar** paneli: bağlantı durumu (Bağlı değil / Bağlanıyor / Bağlı /
+  Hata), bağlı Google hesabı e-postası, klasör adı, klasör kimliği, Drive bağlantısı, bağlantı
+  tarihi ve "Bağlantıyı kaldır" eylemi.
+- `VITE_GOOGLE_CLIENT_ID` ortam değişkeni (`.env.example` + `scripts/generate-env.mjs` →
+  `environment.google.clientId`).
+
+### Değiştirilen
+
+- Footer artık pencerenin en altında: shell flex kolon düzenine geçti, içerik uzadıkça footer aşağı
+  doğru itiliyor (`.content { flex: 1 0 auto; }`, `.footer { margin-top: auto; }`).
+
+### Kaldırılan
+
+- Giriş ekranındaki damga vergisi modülü kartı ve ilişkili stiller/importlar; modüle yalnızca
+  dashboard üzerinden erişiliyor.
+
+
 
 ### Kaldırılan
 

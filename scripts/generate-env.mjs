@@ -46,10 +46,15 @@ const firebaseConfig = {
   appId: env.VITE_FIREBASE_APP_ID ?? '',
 };
 
+const googleConfig = {
+  clientId: env.VITE_GOOGLE_CLIENT_ID ?? '',
+};
+
 const content = `// Bu dosya \`.env\` içeriğinden otomatik üretilir. Elle düzenlemeyin.
 export const environment = {
   production: false,
   firebase: ${JSON.stringify(firebaseConfig, null, 2)},
+  google: ${JSON.stringify(googleConfig, null, 2)},
 };
 `;
 

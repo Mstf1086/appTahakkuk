@@ -30,6 +30,87 @@
   </div>
 
   <div class="panel">
+    <h2>Bağlı hesaplar</h2>
+
+    <div class="drive-status">
+      <div class="drive-heading">
+        <span
+          class="status-dot"
+          [class.status-dot--linked]="drive.isLinked()"
+          [class.status-dot--error]="drive.status() === 'error'"
+          aria-hidden="true"
+        ></span>
+        <div>
+          <p class="drive-title">Google Drive</p>
+          <p class="drive-state">
+            @switch (drive.status()) {
+              @case ('linked') {
+                Bağlı
+              }
+              @case ('connecting') {
+                Bağlanıyor...
+              }
+              @case ('error') {
+                Hata
+              }
+              @default {
+                Bağlı değil
+              }
+            }
+          </p>
+        </div>
+      </div>
+
+      @if (drive.isLinked() && drive.info(); as info) {
+        <dl class="details drive-details">
+          <div>
+            <dt>Bağlı Google hesabı</dt>
+            <dd>{{ info.email }}</dd>
+          </div>
+          <div>
+            <dt>Oluşturulan klasör</dt>
+            <dd>
+              <a [href]="info.folderUrl" target="_blank" rel="noopener noreferrer">
+                {{ info.folderName }}
+              </a>
+            </dd>
+          </div>
+          <div>
+            <dt>Klasör kimliği</dt>
+            <dd class="mono">{{ info.folderId }}</dd>
+          </div>
+          <div>
+            <dt>Bağlantı tarihi</dt>
+            <dd>{{ formatDate(info.connectedAt) }}</dd>
+          </div>
+        </dl>
+      }
+
+      @if (drive.error()) {
+        <p class="alert alert--error" role="alert">{{ drive.error() }}</p>
+      }
+
+      <div class="drive-actions">
+        @if (drive.isLinked()) {
+          <button type="button" class="secondary" [disabled]="drive.busy()" (click)="disconnectDrive()">
+            Bağlantıyı kaldır
+          </button>
+        } @else {
+          <button type="button" class="submit" [disabled]="drive.busy()" (click)="connectDrive()">
+            {{ drive.busy() ? 'Bağlanıyor...' : 'Google Drive’a bağlan' }}
+          </button>
+        }
+      </div>
+
+      <p class="drive-hint">
+        Yetki verildiğinde Drive'ınızda <strong>tahakkuk.web.app</strong> adlı klasör otomatik
+        oluşturulur. Google OAuth istemci kimliği için <code>VITE_GOOGLE_CLIENT_ID</code> ortam
+        değişkenini tanımlayın.
+      </p>
+    </div>
+  </div>
+
+  <div class="panel">
     <h2>Ad Soyad</h2>
     <form [formGroup]="form" (ngSubmit)="save()" novalidate>
       <label for="displayName">Ad Soyad</label>

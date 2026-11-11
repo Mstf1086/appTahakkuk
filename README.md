@@ -28,10 +28,13 @@ Hesaplama** modülü ise misafirler tarafından da giriş yapılmadan kullanıla
   açıktır; modül, shell içinde açıldığı için üst menü ve footer misafirler için de görünür.
 - **Damga Vergisi Hesaplama modülü**: KDV hariç fatura bedelinden damga vergisi kesintisi,
   KDV dahil fatura bedeli, tevkifat kesintisi ve ödenecek tutar hesaplanır. Modül yalnızca
-  dashboard’daki kart üzerinden açılır; menülerde listelenmez.
+  dashboard’daki kart üzerinden açılır; menülerde ve giriş ekranında listelenmez.
+- **Google Drive bağlantısı**: giriş yapmış kullanıcı Google hesabıyla yetki verir; Drive'ında
+  `tahakkuk.web.app` klasörü otomatik oluşturulur. Durum ve bağlı hesap bilgileri profil
+  sayfasındaki "Bağlı hesaplar" panelinde görünür.
 - **Responsive shell**: 900px üzerinde üst menü, altında açılır panel (hamburger).
-- **Footer ve sürüm**: altbilgide yalnızca uygulama adı, telif ve güncel sürüm (`package.json`)
-  görünür; footer'da gezinme bağlantısı yoktur.
+- **Footer ve sürüm**: footer pencerenin en altında durur, içerik uzadıkça aşağı itilir; yalnızca
+  uygulama adı, telif ve güncel sürüm (`package.json`) görünür; footer'da gezinme bağlantısı yoktur.
 - **SEO**: sayfa başlıkları, meta description/keywords, Open Graph, Twitter Card, canonical
   bağlantısı ve `WebApplication` yapısal verisi.
 
@@ -74,6 +77,7 @@ VITE_FIREBASE_PROJECT_ID=tahakkuk-bc03b
 VITE_FIREBASE_STORAGE_BUCKET=tahakkuk-bc03b.firebasestorage.app
 VITE_FIREBASE_MESSAGING_SENDER_ID=...
 VITE_FIREBASE_APP_ID=...
+VITE_GOOGLE_CLIENT_ID=....apps.googleusercontent.com
 ```
 
 `.env` dosyası git-ignored’dır ve **asla commit edilmemelidir**.
@@ -96,6 +100,29 @@ komutlarından önce otomatik çalışır (`pre*` scriptleri).
    geliştirme için varsayılan olarak izinlidir).
 4. **Project settings → Your apps → Web** uygulamasından yapılandırma değerlerini `.env`
    dosyasına kopyalayın.
+
+## Google Drive yapılandırması
+
+Profil sayfasındaki **Google Drive’a bağlan** düğmesi Google Identity Services (GIS) ile OAuth 2.0
+erişim token'ı alır ve Drive API v3 ile `tahakkuk.web.app` klasörünü oluşturur.
+
+1. [Google Cloud Console](https://console.cloud.google.com/) → yeni veya mevcut bir proje seçin.
+2. **APIs & Services → Library** → **Google Drive API** etkinleştirin.
+3. **APIs & Services → OAuth consent screen** → External (test kullanıcısı olarak kendi Google
+   hesabınızı **Test users** listesine ekleyin).
+4. **APIs & Services → Credentials → Create credentials → OAuth client ID → Web application**:
+   - **Authorized JavaScript origins**: `http://localhost:4200` ve yayın alan adınız
+     (ör. `https://tahakkuk.web.app`).
+5. İstemci kimliğini `.env` dosyasına `VITE_GOOGLE_CLIENT_ID=...` olarak yazın ve
+   `npm run env:generate` çalıştırın.
+
+Kapsam (`scope`): `https://www.googleapis.com/auth/drive.file`, `email`, `profile`. `drive.file`
+kapsamı yalnızca uygulamanın oluşturduğu dosyalara erişir; kullanıcının mevcut Drive içeriği
+okunmaz. Bağlantı bilgisi (hesap e-postası, klasör kimliği, bağlantı tarihi) oturum bazında
+`sessionStorage` üzerinde tutulur; tarayıcı kapanınca silinir.
+
+Profil sayfasında bağlantı durumu, bağlı Google hesabı ve klasör bilgisi "Bağlı hesaplar"
+panelinde gösterilir.
 
 ## Çalıştırma
 
@@ -140,16 +167,17 @@ src/
 │   │   ├── auth.service.ts        # Firebase Authentication sarmalayıcı
 │   │   ├── auth.guard.ts          # Korumalı rota guard'ı
 │   │   ├── auth-errors.ts         # Firebase hata kodları -> Türkçe mesaj
+│   │   ├── google-drive.service.ts # Google Drive yetkilendirme ve klasör oluşturma
 │   │   ├── seo.service.ts         # Başlık, meta, Open Graph, canonical
 │   │   ├── app-info.ts            # package.json'dan sürüm bilgisi
 │   │   └── firebase.ts            # Firebase başlatma (tek nokta)
 │   ├── layout/
-│   │   ├── shell.component.*      # Üst menü / mobil panel
+│   │   ├── shell.component.*      # Üst menü / mobil panel (flex kolon, footer en altta)
 │   │   └── footer.component.*     # Altbilgi ve sürüm bilgisi
 │   ├── features/
 │   │   ├── login/*                # Giriş ve hesap oluşturma
 │   │   ├── dashboard/*            # Pano ve modül kartları
-│   │   ├── profile/*              # Profil düzenleme
+│   │   ├── profile/*              # Profil düzenleme + bağlı hesaplar (Google Drive)
 │   │   └── modules/stamp-tax/*    # Damga vergisi hesaplama (herkese açık)
 │   ├── app.routes.ts              # Rotalar (public + korumalı)
 │   └── app.config.ts              # Provider'lar, Türkçe locale
@@ -171,7 +199,8 @@ src/
 | 6 | Ödenecek tutar | `KDV dahil fatura bedeli − damga vergisi kesintisi − tevkifat kesintisi` (sistemsel) |
 
 Tutarlar kuruş hassasiyetinde yuvarlanır ve Türkçe para birimi biçiminde (`₺1.000,00`)
-gösterilir. Modül giriş gerektirmez; giriş ekranındaki karttan da erişilebilir.
+gösterilir. Modül giriş gerektirmez; yalnızca dashboard'daki modül kartı üzerinden erişilir
+(menülerde ve giriş ekranında listelenmez).
 
 ## SEO
 
@@ -204,6 +233,9 @@ bölümüne bakın.
 | `auth/operation-not-allowed` | Aynı ayar: Email/Password sağlayıcısı açık olmalı. |
 | `auth/domain-not-authorized` | Authorized domains listesine alan adınızı ekleyin. |
 | Değişiklikler görünmüyor | `npm start` çalışıyor mu? `npm run env:generate` sonrası yeniden başlatın. |
+| “Google OAuth istemci kimliği yapılandırılmamış” | `.env` içine `VITE_GOOGLE_CLIENT_ID` ekleyip `npm run env:generate` çalıştırın. |
+| Google ile yetkilendirme penceresi açılmıyor | Cloud Console → Credentials → Web client → **Authorized JavaScript origins** içine `http://localhost:4200` ekleyin; Drive API etkin olmalı. |
+| Drive klasörü oluşmuyor | OAuth consent screen → Test users listesinde hesabınız olsun; `drive.file` kapsamı için ek izin gerekmez. |
 
 ## İlgili belgeler
 

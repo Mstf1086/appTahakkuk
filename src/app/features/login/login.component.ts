@@ -1,13 +1,13 @@
 import { ChangeDetectionStrategy, Component, inject, signal } from '@angular/core';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
-import { ActivatedRoute, Router, RouterLink } from '@angular/router';
+import { ActivatedRoute, Router } from '@angular/router';
 import { AuthMode, AuthService } from '../../core/auth.service';
 import { toAuthErrorMessage } from '../../core/auth-errors';
 import { SeoService } from '../../core/seo.service';
 
 @Component({
   selector: 'app-login',
-  imports: [ReactiveFormsModule, RouterLink],
+  imports: [ReactiveFormsModule],
   templateUrl: './login.component.html',
   changeDetection: ChangeDetectionStrategy.OnPush,
   styleUrl: './login.component.css',
@@ -28,8 +28,8 @@ export class LoginComponent {
     this.seoService.setPage({
       title: 'Giriş | Tahakkuk',
       description:
-        'Tahakkuk panosuna giriş yapın veya ücretsiz hesap oluşturun; damga vergisi hesaplama modülü misafirler için açıktır.',
-      keywords: 'tahakkuk giriş, damga vergisi hesaplama, tahakkuk paneli',
+        'Tahakkuk panosuna giriş yapın veya ücretsiz hesap oluşturun; hesabınızla modüllere ve Google Drive bağlantılarınıza ulaşın.',
+      keywords: 'tahakkuk giriş, tahakkuk paneli, hesap oluştur',
       path: '/login',
     });
   }
