@@ -4,74 +4,10 @@
   gap: 1.5rem;
 }
 
-.page-header {
-  display: flex;
-  flex-direction: column;
-  gap: 1rem;
-}
-
-h1 {
-  margin: 0;
-  color: #0f172a;
-  font-size: 1.6rem;
-}
-
 h2 {
-  margin: 0 0 1rem;
+  margin: 0;
   color: #0f172a;
   font-size: 1.1rem;
-}
-
-.subtitle {
-  margin: 0.35rem 0 0;
-  color: #64748b;
-}
-
-.primary-link {
-  align-self: flex-start;
-  padding: 0.65rem 1.1rem;
-  border-radius: 0.5rem;
-  background: #4f46e5;
-  color: #ffffff;
-  font-weight: 600;
-  text-decoration: none;
-}
-
-.primary-link:hover {
-  background: #4338ca;
-}
-
-.cards {
-  display: grid;
-  grid-template-columns: 1fr;
-  gap: 1rem;
-}
-
-.card {
-  padding: 1.25rem;
-  border: 1px solid #e2e8f0;
-  border-radius: 0.75rem;
-  background: #ffffff;
-}
-
-.card-title {
-  margin: 0;
-  color: #64748b;
-  font-size: 0.875rem;
-  font-weight: 600;
-}
-
-.card-value {
-  margin: 0.5rem 0 0.25rem;
-  color: #0f172a;
-  font-size: 1.75rem;
-  font-weight: 700;
-}
-
-.card-hint {
-  margin: 0;
-  color: #94a3b8;
-  font-size: 0.8rem;
 }
 
 .modules {
@@ -150,63 +86,6 @@ a.module-card:focus-visible {
   color: #4f46e5;
   font-size: 0.8rem;
   font-weight: 600;
-}
-
-.panel {
-  padding: 1.25rem;
-  border: 1px solid #e2e8f0;
-  border-radius: 0.75rem;
-  background: #ffffff;
-}
-
-.activity-list {
-  display: flex;
-  flex-direction: column;
-  gap: 0.75rem;
-  margin: 0;
-  padding: 0;
-  list-style: none;
-}
-
-.activity-list li {
-  display: flex;
-  flex-direction: column;
-  gap: 0.15rem;
-  padding-bottom: 0.75rem;
-  border-bottom: 1px solid #f1f5f9;
-}
-
-.activity-list li:last-child {
-  padding-bottom: 0;
-  border-bottom: 0;
-}
-
-.activity-title {
-  color: #1e293b;
-  font-weight: 600;
-}
-
-.activity-hint {
-  color: #94a3b8;
-  font-size: 0.85rem;
-}
-
-@media (min-width: 640px) {
-  .cards {
-    grid-template-columns: repeat(3, 1fr);
-  }
-}
-
-@media (min-width: 900px) {
-  .page-header {
-    flex-direction: row;
-    align-items: center;
-    justify-content: space-between;
-  }
-
-  .primary-link {
-    align-self: auto;
-  }
 }
 
 @media (min-width: 1200px) {

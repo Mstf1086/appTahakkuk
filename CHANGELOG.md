@@ -7,6 +7,19 @@ sürümler [Semantic Versioning](https://semver.org/lang/tr/) kurallarına uyar.
 son bileşeni bir artırılır (`0.0.1` → `0.0.2`); `0.0` (major.minor) kısmı yalnızca proje sahibi
 istediğinde değiştirilir.
 
+## [0.0.4] - 2026-11-11
+
+### Kaldırılan
+
+- Dashboard başlığı (karşılama metni, “Giriş yap” bağlantısı ve “Profili görüntüle” bağlantısı).
+- Özet kartları (Toplam tahakkuk, Bekleyen ödeme, Bu ay).
+- “Son hareketler” paneli (hesap oluşturuldu, oturum başlatıldı, profil güncellendi).
+
+### Değiştirilen
+
+- Dashboard artık yalnızca **Modüller** bölümünden oluşuyor; kullanılmayan kart/panel stilleri ve
+  veri alanları kaldırıldı.
+
 ## [0.0.3] - 2026-11-11
 
 ### Eklenen

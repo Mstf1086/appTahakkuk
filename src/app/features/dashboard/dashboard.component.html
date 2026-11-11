@@ -1,26 +1,4 @@
 <section class="page">
-  <header class="page-header">
-    <div>
-      <h1>
-        {{ user()?.displayName ? 'Hoş geldiniz, ' + user()?.displayName : 'Tahakkuk panosu' }}
-      </h1>
-      <p class="subtitle">Tahakkuk panosu ve güncel durum özeti.</p>
-    </div>
-    @if (user()) {
-      <a class="primary-link" routerLink="/profile">Profili görüntüle</a>
-    }
-  </header>
-
-  <div class="cards">
-    @for (card of cards; track card.title) {
-      <article class="card">
-        <p class="card-title">{{ card.title }}</p>
-        <p class="card-value">{{ card.value }}</p>
-        <p class="card-hint">{{ card.hint }}</p>
-      </article>
-    }
-  </div>
-
   <section class="modules">
     <div class="modules-header">
       <h2>Modüller</h2>
@@ -38,16 +16,4 @@
       }
     </div>
   </section>
-
-  <div class="panel">
-    <h2>Son hareketler</h2>
-    <ul class="activity-list">
-      @for (activity of activities; track activity.title) {
-        <li>
-          <span class="activity-title">{{ activity.title }}</span>
-          <span class="activity-hint">{{ activity.hint }}</span>
-        </li>
-      }
-    </ul>
-  </div>
 </section>

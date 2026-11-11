@@ -47,6 +47,3 @@ Thumbs.db
 !.env.example
 /src/environments/environment.ts
 
-# Local agent tooling and business documents (not part of the source repository)
-/.kimi-code/
-/docs/

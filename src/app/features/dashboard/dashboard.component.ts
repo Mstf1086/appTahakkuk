@@ -1,6 +1,5 @@
 import { ChangeDetectionStrategy, Component, inject } from '@angular/core';
 import { RouterLink } from '@angular/router';
-import { AuthService } from '../../core/auth.service';
 import { SeoService } from '../../core/seo.service';
 
 interface DashboardModule {
@@ -18,10 +17,7 @@ interface DashboardModule {
   styleUrl: './dashboard.component.css',
 })
 export class DashboardComponent {
-  private readonly authService = inject(AuthService);
   private readonly seoService = inject(SeoService);
-
-  readonly user = this.authService.user;
 
   constructor() {
     this.seoService.setPage({
@@ -33,12 +29,6 @@ export class DashboardComponent {
     });
   }
 
-  readonly cards = [
-    { title: 'Toplam tahakkuk', value: '—', hint: 'Veri bağlandığında burada görünecek' },
-    { title: 'Bekleyen ödeme', value: '—', hint: 'Veri bağlandığında burada görünecek' },
-    { title: 'Bu ay', value: '—', hint: 'Veri bağlandığında burada görünecek' },
-  ];
-
   readonly modules: DashboardModule[] = [
     {
       code: 'DV',
@@ -46,11 +36,5 @@ export class DashboardComponent {
       description: 'KDV hariç fatura bedeli üzerinden damga vergisi kesintisi hesaplar.',
       path: '/modules/stamp-tax',
     },
-  ];
-
-  readonly activities = [
-    { title: 'Hesap oluşturuldu', hint: 'Firebase Authentication üzerinden giriş yapıldı' },
-    { title: 'Oturum başlatıldı', hint: 'Giriş sonrası oturum güvenli şekilde açıldı' },
-    { title: 'Profil güncellendi', hint: 'Profil sayfasından görünen bilgiler düzenlenebilir' },
   ];
 }

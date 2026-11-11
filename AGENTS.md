@@ -118,7 +118,7 @@ These rules exist to keep the context window small while still delivering verifi
 - `src/app/layout/shell.component.*` — responsive frame: top navigation on desktop, slide-in sidebar on mobile.
 - `src/app/layout/footer.component.*` — application footer showing the app name, copyright, and the current version (no navigation links).
 - `src/app/features/login/*` — login and account creation form; also hosts the guest entry card for the public module.
-- `src/app/features/dashboard/*` — dashboard overview and the module card grid (5 modules per row on desktop).
+- `src/app/features/dashboard/*` — dashboard page; contains only the module card grid (5 modules per row on desktop), no summary cards or activity panel.
 - `src/app/features/profile/*` — profile details and display name editing.
 - `src/app/features/modules/stamp-tax/*` — public damga vergisi hesaplama module (damga vergisi kesintisi, KDV dahil fatura bedeli, ödenecek tutar).
 - `src/environments/environment.ts` — generated from `.env`; never edit or commit it.
@@ -146,7 +146,7 @@ These rules exist to keep the context window small while still delivering verifi
 - **The module must not be listed in the top menu or the mobile sidebar.** It is reachable only from the dashboard card and the login screen card.
 - New public modules follow the same shape: a child route of the shell (so the frame stays consistent), a guest-friendly header with a "Giriş yap" entry, and a card on the dashboard and login pages.
 - Calculation rules for the module: damga vergisi kesintisi = KDV hariç fatura bedeli × 9,48/1000; KDV dahil fatura bedeli = KDV hariç bedel + KDV bedeli; ödenecek tutar = KDV dahil fatura bedeli − damga vergisi kesintisi − tevkifat kesintisi. KDV bedeli and tevkifat kesintisi are manual inputs.
-- Never invent modules, cards, or dashboard entries for functionality that does not exist; show only implemented features.
+- Never invent modules, cards, or dashboard entries for functionality that does not exist; show only implemented features. The dashboard intentionally contains only real module cards — no placeholder summary cards or activity list.
 - Every new route sets a Turkish `title` in `app.routes.ts` and calls `SeoService.setPage()` with a unique description.
 
 ## Environment variables

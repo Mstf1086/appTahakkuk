@@ -1,6 +1,6 @@
 {
   "name": "tahakkuk",
-  "version": "0.0.3",
+  "version": "0.0.4",
   "scripts": {
     "ng": "ng",
     "env:init": "cp .env.example .env",
