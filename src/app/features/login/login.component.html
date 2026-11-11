@@ -1,0 +1,75 @@
+<main class="login-page">
+  <section class="login-card">
+    <p class="eyebrow">Tahakkuk</p>
+    <h1>{{ isRegisterMode ? 'Hesap oluştur' : 'Giriş yap' }}</h1>
+    <p class="subtitle">
+      {{
+        isRegisterMode
+          ? 'Yeni bir hesap oluşturarak devam edin.'
+          : 'Hesabınıza giriş yaparak devam edin.'
+      }}
+    </p>
+
+    @if (!isConfigured) {
+      <p class="alert alert--warning" role="alert">
+        Firebase yapılandırması eksik. Lütfen <code>.env</code> dosyanızı oluşturup uygulamayı
+        yeniden başlatın.
+      </p>
+    }
+
+    <form [formGroup]="form" (ngSubmit)="submit()" novalidate>
+      @if (isRegisterMode) {
+        <label for="displayName">Ad Soyad</label>
+        <input id="displayName" type="text" formControlName="displayName" autocomplete="name" />
+
+        <label for="email">E-posta</label>
+        <input id="email" type="email" formControlName="email" autocomplete="email" />
+      } @else {
+        <label for="email">E-posta</label>
+        <input id="email" type="email" formControlName="email" autocomplete="email" />
+      }
+
+      <label for="password">Şifre</label>
+      <input
+        id="password"
+        type="password"
+        formControlName="password"
+        autocomplete="current-password"
+      />
+
+      @if (form.controls.email.touched && form.controls.email.invalid) {
+        <p class="field-error">Geçerli bir e-posta adresi girin.</p>
+      }
+
+      @if (form.controls.password.touched && form.controls.password.invalid) {
+        <p class="field-error">Şifre en az 6 karakter olmalıdır.</p>
+      }
+
+      @if (errorMessage()) {
+        <p class="alert alert--error" role="alert">{{ errorMessage() }}</p>
+      }
+
+      <button type="submit" class="submit" [disabled]="loading() || !isConfigured">
+        {{ loading() ? 'Bekleyin...' : isRegisterMode ? 'Hesap oluştur' : 'Giriş yap' }}
+      </button>
+    </form>
+
+    <button type="button" class="switch-mode" (click)="toggleMode()">
+      {{
+        isRegisterMode
+          ? 'Zaten hesabınız var mı? Giriş yapın'
+          : 'Hesabınız yok mu? Hesap oluşturun'
+      }}
+    </button>
+
+    <a class="module-card" routerLink="/modules/stamp-tax">
+      <span class="module-code" aria-hidden="true">DV</span>
+      <span class="module-title">Damga Vergisi Hesaplama</span>
+      <span class="module-hint">
+        KDV hariç fatura bedeli üzerinden damga vergisi kesintisi, tevkifat kesintisi ve ödenecek
+        tutarı hesaplayın. Giriş gerekmez.
+      </span>
+      <span class="module-action">Hesaplamaya başla</span>
+    </a>
+  </section>
+</main>

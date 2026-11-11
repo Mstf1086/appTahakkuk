@@ -1,0 +1,40 @@
+{
+  "name": "tahakkuk",
+  "version": "0.0.3",
+  "scripts": {
+    "ng": "ng",
+    "env:init": "cp .env.example .env",
+    "env:generate": "node scripts/generate-env.mjs",
+    "prestart": "npm run env:generate",
+    "start": "ng serve",
+    "prebuild": "npm run env:generate",
+    "build": "ng build",
+    "watch": "ng build --watch --configuration development",
+    "pretest:ci": "npm run env:generate",
+    "test:ci": "ng test --watch=false",
+    "test": "ng test"
+  },
+  "private": true,
+  "dependencies": {
+    "@angular/common": "^22.2.5",
+    "@angular/compiler": "^22.2.5",
+    "@angular/core": "^22.2.5",
+    "@angular/forms": "^22.2.5",
+    "@angular/platform-browser": "^22.2.5",
+    "@angular/platform-browser-dynamic": "^22.2.5",
+    "@angular/router": "^22.2.5",
+    "firebase": "^13.2.0",
+    "rxjs": "~7.8.0",
+    "tslib": "^2.3.0",
+    "zone.js": "~0.15.0"
+  },
+  "devDependencies": {
+    "@angular/build": "^22.2.6",
+    "@angular/cli": "^22.2.6",
+    "@angular/compiler-cli": "^22.2.5",
+    "jsdom": "^31.0.0",
+    "typescript": "~6.0.3",
+    "vite": "^8.3.8",
+    "vitest": "^5.0.0"
+  }
+}

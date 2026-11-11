@@ -1,0 +1,101 @@
+<section class="page">
+  <header class="page-header">
+    <div>
+      @if (user()) {
+        <a class="back-link" routerLink="/dashboard">← Dashboard'a dön</a>
+      } @else {
+        <a class="back-link" routerLink="/login">← Giriş sayfasına dön</a>
+      }
+      <h1>Damga Vergisi Hesaplama</h1>
+      <p class="subtitle">
+        Damga vergisi kesintisi, KDV hariç fatura bedeli üzerinden 9,48/1000 oranında hesaplanır.
+      </p>
+    </div>
+    @if (!user()) {
+      <p class="guest-note">
+        Bu modülü hesap oluşturmadan kullanabilirsiniz. Tahakkuk panosuna erişmek için
+        <a routerLink="/login" [queryParams]="{ returnUrl: '/modules/stamp-tax' }">giriş yapın</a>.
+      </p>
+    }
+  </header>
+
+  <div class="layout">
+    <form class="form-panel" [formGroup]="form" novalidate>
+      <h2>Bilgiler</h2>
+
+      <label for="amountExcludingVat">KDV hariç fatura bedeli</label>
+      <input
+        id="amountExcludingVat"
+        type="number"
+        inputmode="decimal"
+        min="0"
+        step="0.01"
+        formControlName="amountExcludingVat"
+      />
+      @if (form.controls.amountExcludingVat.touched && form.controls.amountExcludingVat.invalid) {
+        <p class="field-error">Sıfırdan büyük bir tutar girin.</p>
+      }
+
+      <label for="vatAmount">KDV bedeli</label>
+      <input
+        id="vatAmount"
+        type="number"
+        inputmode="decimal"
+        min="0"
+        step="0.01"
+        formControlName="vatAmount"
+      />
+      @if (form.controls.vatAmount.touched && form.controls.vatAmount.invalid) {
+        <p class="field-error">Sıfırdan büyük bir tutar girin.</p>
+      }
+
+      <label for="withholdingDeduction">Tevkifat kesintisi</label>
+      <input
+        id="withholdingDeduction"
+        type="number"
+        inputmode="decimal"
+        min="0"
+        step="0.01"
+        formControlName="withholdingDeduction"
+      />
+      @if (
+        form.controls.withholdingDeduction.touched && form.controls.withholdingDeduction.invalid
+      ) {
+        <p class="field-error">Sıfırdan büyük bir tutar girin.</p>
+      }
+
+      <button type="button" class="reset" (click)="reset()">Formu temizle</button>
+    </form>
+
+    <div class="result-panel">
+      <h2>Hesaplama sonucu</h2>
+
+      <dl class="result-list">
+        <div class="result-row">
+          <dt>KDV hariç fatura bedeli</dt>
+          <dd>{{ formatCurrency(amountExcludingVat()) }}</dd>
+        </div>
+        <div class="result-row">
+          <dt>KDV bedeli</dt>
+          <dd>{{ formatCurrency(vatAmount()) }}</dd>
+        </div>
+        <div class="result-row">
+          <dt>KDV dahil fatura bedeli</dt>
+          <dd>{{ formatCurrency(amountIncludingVat()) }}</dd>
+        </div>
+        <div class="result-row">
+          <dt>Damga vergisi kesintisi (9,48/1000)</dt>
+          <dd>{{ formatCurrency(stampTaxDeduction()) }}</dd>
+        </div>
+        <div class="result-row">
+          <dt>Tevkifat kesintisi</dt>
+          <dd>{{ formatCurrency(withholdingDeduction()) }}</dd>
+        </div>
+        <div class="result-row result-row--total">
+          <dt>Ödenecek tutar</dt>
+          <dd>{{ formatCurrency(payableAmount()) }}</dd>
+        </div>
+      </dl>
+    </div>
+  </div>
+</section>
