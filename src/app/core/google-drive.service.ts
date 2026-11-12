@@ -27,6 +27,7 @@ interface GoogleAccounts {
     initTokenClient: (config: {
       client_id: string;
       scope: string;
+      login_hint?: string;
       callback: (response: { access_token?: string; error?: string }) => void;
     }) => { requestAccessToken: (overrides?: { prompt?: string }) => void };
   };
@@ -77,8 +78,15 @@ export class GoogleDriveService {
     this.statusSignal.set('connecting');
 
     try {
-      const token = await this.requestToken();
+      const token = await this.requestToken(user.email ?? undefined);
       const account = await this.fetchAccount(token);
+
+      // Yetkilendirme Firebase oturumundaki e-postayla aynı Google hesabına ait olmalı;
+      // farklı bir Google hesabı seçilmişse bağlantı kabul edilmez.
+      if (user.email && account.email && user.email.toLowerCase() !== account.email.toLowerCase()) {
+        throw new Error('ACCOUNT_MISMATCH');
+      }
+
       const folder = await this.ensureFolder(token);
 
       const info: DriveLinkInfo = {
@@ -126,7 +134,7 @@ export class GoogleDriveService {
     }
   }
 
-  private async requestToken(): Promise<string> {
+  private async requestToken(loginHint?: string): Promise<string> {
     await this.loadGisScript();
 
     return new Promise<string>((resolve, reject) => {
@@ -151,6 +159,7 @@ export class GoogleDriveService {
       const tokenClient = window.google?.oauth2?.initTokenClient({
         client_id: environment.google.clientId,
         scope: SCOPES,
+        ...(loginHint ? { login_hint: loginHint } : {}),
         callback: (response) => {
           settle(() => {
             if (response.access_token) {
@@ -277,6 +286,12 @@ function toDriveErrorMessage(error: unknown): string {
   switch (code) {
     case 'access_denied':
       return 'Google Drive izni geri çekildi. Tekrar deneyin.';
+    case 'ACCOUNT_MISMATCH':
+      return (
+        'Google Drive farklı bir Google hesabıyla yetkilendirildi. Bağlantı, giriş yaptığınız ' +
+        'Firebase hesabıyla aynı e-postayı kullanan Google hesabına yapılmalıdır; Google penceresinde ' +
+        'hesabı değiştirip bu e-postayla devam edin.'
+      );
     case 'GIS_NOT_READY':
     case 'TOKEN_WAIT_TIMEOUT':
       return (

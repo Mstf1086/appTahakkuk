@@ -7,6 +7,20 @@ sürümler [Semantic Versioning](https://semver.org/lang/tr/) kurallarına uyar.
 son bileşeni bir artırılır (`0.0.1` → `0.0.2`); `0.0` (major.minor) kısmı yalnızca proje sahibi
 istediğinde değiştirilir.
 
+## [0.0.11] - 2026-11-12
+
+### Eklenen
+
+- Google Drive yetkilendirmesi **Firebase Auth oturumuna bağlı**: Google penceresi, giriş
+  yapılan e-posta adresi `login_hint` olarak geçirilerek açılır (doğru hesapla başlar) ve
+  token'daki Google hesabı Firebase hesabıyla farklıysa bağlantı `ACCOUNT_MISMATCH` hatası
+  ile reddedilir; Drive'a farklı bir hesapla bağlanılamaz.
+
+### Değiştirilen
+
+- Profil sayfasındaki "Bağlı hesaplar" akışı artık Firebase oturumu + Google hesabı
+  eşleşmesini doğrular; hata mesajları Türkçedir.
+
 ## [0.0.10] - 2026-11-12
 
 ### Değiştirilen

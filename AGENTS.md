@@ -179,6 +179,7 @@ These rules exist to keep the context window small while still delivering verifi
 - Requires a signed-in Firebase user and `VITE_GOOGLE_CLIENT_ID` (Google Cloud OAuth Web client with `http://localhost:4200` and the deployment origin in **Authorized JavaScript origins**; **Google Drive API** enabled).
 - Scope is `https://www.googleapis.com/auth/drive.file` plus `email`/`profile` — never the broad `drive` scope.
 - On connect the service fetches the Google account email, then finds or creates the `tahakkuk.web.app` folder in the user's Drive root and stores `{ uid, email, folderId, folderUrl, connectedAt }` in `sessionStorage` only.
+- The Google token request must pass the signed-in Firebase user's email as `login_hint`, and the returned Google account email must match the Firebase account email (case-insensitive); a mismatch is rejected with `ACCOUNT_MISMATCH`. Drive is always linked to the same account that signed in via Firebase Auth.
 - All token/folder logic stays in `src/app/core/google-drive.service.ts`; the profile page only renders `status` / `info` / `error` and calls `connect()` / `disconnect()`.
 
 ## Testing instructions
