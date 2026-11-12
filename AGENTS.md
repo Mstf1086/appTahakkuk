@@ -159,6 +159,13 @@ These rules exist to keep the context window small while still delivering verifi
 - `scripts/generate-env.mjs` parses `.env` and generates the typed `environment.ts` consumed by the app.
 - Angular does not read `.env` natively, so the generation step must run before any build, serve, or test command.
 
+## Firebase Hosting
+
+- The app deploys to the `tahakkuk-bc03b` project (`.firebaserc` → `default`); the live URL is `https://tahakkuk-bc03b.web.app`.
+- `firebase.json` → `hosting.public` is `dist/tahakkuk/browser` (the `@angular/build` application output). Pointing it anywhere else (e.g. `dist`) publishes Firebase's stock "Welcome to Firebase Hosting" page instead of the app.
+- `hosting.rewrites` sends every path to `index.html` (SPA routing).
+- Both the Firebase **Authorized domains** and the Google Cloud **Authorized JavaScript origins** lists must include `tahakkuk-bc03b.web.app` for auth and the Google Drive flow to work in production.
+
 ## Firebase Authentication
 
 - The project is `tahakkuk-bc03b`. The **Email/Password** provider must be enabled in the Firebase console (Authentication → Sign-in method) for the login form to work.

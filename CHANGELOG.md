@@ -7,6 +7,21 @@ sürümler [Semantic Versioning](https://semver.org/lang/tr/) kurallarına uyar.
 son bileşeni bir artırılır (`0.0.1` → `0.0.2`); `0.0` (major.minor) kısmı yalnızca proje sahibi
 istediğinde değiştirilir.
 
+## [0.0.8] - 2026-11-12
+
+### Düzeltilen
+
+- `firebase.json` → `hosting.public` değeri `dist` yerine **`dist/tahakkuk/browser`** yapıldı;
+  yanlış dizin yüzünden yayında Firebase'in "Welcome to Firebase Hosting / Setup Complete"
+  hazır sayfası görünüyordu.
+- `.firebaserc` → `default` projesi `tahakkuk-bc03b` olarak düzeltildi.
+
+### Değiştirilen
+
+- README'ye **Dağıtım (Firebase Hosting)** bölümü ve sorun giderme satırları eklendi;
+  `tahakkuk-bc03b.web.app` adresi artık dokümante edildi (Authorized domains / JavaScript
+  origins hatırlatmasıyla).
+
 ## [0.0.7] - 2026-11-12
 
 ### Değiştirilen

@@ -152,6 +152,24 @@ Uygulamada:
 - `0.0` (major.minor) kısmı **yalnızca proje sahibi istediğinde** değiştirilir (`0.1.0`, `1.0.0`).
 - Her sürüm için `CHANGELOG.md` dosyasına `## [x.y.z] - YYYY-MM-DD` başlığı eklenir.
 
+## Dağıtım (Firebase Hosting)
+
+Uygulama `tahakkuk-bc03b` Firebase projesine dağıtılır; yayın adresi
+`https://tahakkuk-bc03b.web.app` olur.
+
+```bash
+firebase use default     # tahakkuk-bc03b (bir kez)
+npm run build            # çıktı: dist/tahakkuk/browser
+firebase deploy --only hosting
+```
+
+- `firebase.json` → `hosting.public`: `dist/tahakkuk/browser` (Angular `application` builder
+  çıktısı). Yanlış dizin (ör. `dist`) dağıtılırsa Firebase'in hazır "Welcome to Firebase
+  Hosting" sayfası görünür.
+- `rewrites` tüm yolları `index.html`'e yönlendirir (SPA router); yeni rotalarda 404 alınmaz.
+- Firebase Console → Authentication → **Authorized domains** ve Google Cloud Console →
+  **Authorized JavaScript origins** listesine `tahakkuk-bc03b.web.app` eklenmelidir.
+
 ## Test ve derleme
 
 ```bash
@@ -233,6 +251,8 @@ bölümüne bakın.
 | Belirti | Çözüm |
 | --- | --- |
 | “Firebase yapılandırması eksik” uyarısı | `.env` dosyasını oluşturup `npm run env:generate` çalıştırın. |
+| Yayında “Firebase Hosting Setup Complete / Welcome to Firebase Hosting” sayfası görünüyor | `firebase.json` → `hosting.public` değeri `dist/tahakkuk/browser` olmalı; `npm run build` sonrası yeniden `firebase deploy --only hosting` çalıştırın. |
+| Yayında Google Drive bağlantısı başarısız | Cloud Console → Web client → **Authorized JavaScript origins** içine `https://tahakkuk-bc03b.web.app` ekleyin. |
 | Giriş yapılamıyor | Firebase Console → Authentication → Email/Password etkin mi? |
 | `auth/operation-not-allowed` | Aynı ayar: Email/Password sağlayıcısı açık olmalı. |
 | `auth/domain-not-authorized` | Authorized domains listesine alan adınızı ekleyin. |
