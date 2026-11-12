@@ -7,6 +7,14 @@ sürümler [Semantic Versioning](https://semver.org/lang/tr/) kurallarına uyar.
 son bileşeni bir artırılır (`0.0.1` → `0.0.2`); `0.0` (major.minor) kısmı yalnızca proje sahibi
 istediğinde değiştirilir.
 
+## [0.0.9] - 2026-11-12
+
+### Düzeltilen
+
+- `.firebase/` (CLI deploy cache'i) `.gitignore`'a eklendi ve repodan kaldırıldı; proje
+  yapılandırması (`.firebaserc`, `firebase.json`) versiyon kontrolünde kalır, geçici cache
+  dosyaları commit edilmez.
+
 ## [0.0.8] - 2026-11-12
 
 ### Düzeltilen

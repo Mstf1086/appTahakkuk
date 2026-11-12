@@ -47,3 +47,4 @@ Thumbs.db
 !.env.example
 /src/environments/environment.ts
 
+.firebase/
