@@ -2,9 +2,11 @@ import { Injectable, computed, inject, signal } from '@angular/core';
 import { Router } from '@angular/router';
 import {
   User,
+  GoogleAuthProvider,
   createUserWithEmailAndPassword,
   onAuthStateChanged,
   signInWithEmailAndPassword,
+  signInWithPopup,
   signOut,
   updateProfile,
 } from 'firebase/auth';
@@ -51,6 +53,13 @@ export class AuthService {
   async login(email: string, password: string): Promise<void> {
     const client = this.requireAuth();
     await signInWithEmailAndPassword(client, email, password);
+  }
+
+  // Google ile giriş: Firebase kendi OAuth popup'ını açar; Google'ın yetki akışına
+  // girilmediği için Cloud Console origins/VITE_GOOGLE_CLIENT_ID gerektirmez.
+  async loginWithGoogle(): Promise<void> {
+    const client = this.requireAuth();
+    await signInWithPopup(client, new GoogleAuthProvider());
   }
 
   async register(email: string, password: string, displayName: string): Promise<void> {

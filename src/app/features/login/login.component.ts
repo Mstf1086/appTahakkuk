@@ -21,6 +21,7 @@ export class LoginComponent {
 
   readonly mode = signal<AuthMode>('login');
   readonly loading = signal(false);
+  readonly googleLoading = signal(false);
   readonly errorMessage = signal('');
   readonly isConfigured = this.authService.isConfigured;
 
@@ -77,5 +78,23 @@ export class LoginComponent {
   private returnUrl(): string {
     const target = this.route.snapshot.queryParamMap.get('returnUrl');
     return target && target.startsWith('/') ? target : '/dashboard';
+  }
+
+  async loginWithGoogle(): Promise<void> {
+    if (this.googleLoading()) {
+      return;
+    }
+
+    this.googleLoading.set(true);
+    this.errorMessage.set('');
+
+    try {
+      await this.authService.loginWithGoogle();
+      await this.router.navigateByUrl(this.returnUrl());
+    } catch (error) {
+      this.errorMessage.set(toAuthErrorMessage(error));
+    } finally {
+      this.googleLoading.set(false);
+    }
   }
 }

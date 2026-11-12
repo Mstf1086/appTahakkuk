@@ -9,11 +9,13 @@ describe('LoginComponent', () => {
     isConfigured: true,
     login: vi.fn(async () => undefined),
     register: vi.fn(async () => undefined),
+    loginWithGoogle: vi.fn(async () => undefined),
   };
 
   beforeEach(async () => {
     stub.login.mockResolvedValue(undefined);
     stub.register.mockResolvedValue(undefined);
+    stub.loginWithGoogle.mockResolvedValue(undefined);
 
     await TestBed.configureTestingModule({
       imports: [LoginComponent],
@@ -67,5 +69,39 @@ describe('LoginComponent', () => {
     const element = fixture.nativeElement as HTMLElement;
     expect(fixture.componentInstance.isRegisterMode).toBe(true);
     expect(element.querySelector('input#displayName')).toBeTruthy();
+  });
+
+  it('Google ile giriş düğmesini gösterir ve servisi çağırır', async () => {
+    const fixture = TestBed.createComponent(LoginComponent);
+    fixture.detectChanges();
+
+    const element = fixture.nativeElement as HTMLElement;
+    const button = element.querySelector('button.google-btn') as HTMLButtonElement;
+    expect(button).toBeTruthy();
+    expect(button.textContent?.includes('Google ile giriş yap')).toBe(true);
+
+    await fixture.componentInstance.loginWithGoogle();
+    expect(stub.loginWithGoogle).toHaveBeenCalledTimes(1);
+  });
+
+  it('Google girişte engellenen popup için Türkçe hata mesajı gösterir', async () => {
+    stub.loginWithGoogle.mockRejectedValueOnce({ code: 'auth/popup-blocked' });
+
+    const fixture = TestBed.createComponent(LoginComponent);
+    await fixture.componentInstance.loginWithGoogle();
+    fixture.detectChanges();
+
+    expect(fixture.componentInstance.errorMessage()).toBe(
+      'Tarayıcı Google giriş penceresini engelledi. Pop-up engelleyicisini kapatıp tekrar deneyin.',
+    );
+  });
+
+  it('hesap oluşturma modunda Google düğmesini göstermez', () => {
+    const fixture = TestBed.createComponent(LoginComponent);
+    fixture.componentInstance.toggleMode();
+    fixture.detectChanges();
+
+    const element = fixture.nativeElement as HTMLElement;
+    expect(element.querySelector('button.google-btn')).toBeNull();
   });
 });

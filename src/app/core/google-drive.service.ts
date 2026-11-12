@@ -78,13 +78,11 @@ export class GoogleDriveService {
     this.statusSignal.set('connecting');
 
     try {
-      const token = await this.requestToken(user.email ?? undefined);
+      const token = await this.requestToken();
       const account = await this.fetchAccount(token);
 
-      // Yetkilendirme Firebase oturumundaki e-postayla aynı Google hesabına ait olmalı;
-      // farklı bir Google hesabı seçilmişse bağlantı kabul edilmez.
-      if (user.email && account.email && user.email.toLowerCase() !== account.email.toLowerCase()) {
-        throw new Error('ACCOUNT_MISMATCH');
+      if (!account.email) {
+        throw new Error('USERINFO_ERROR');
       }
 
       const folder = await this.ensureFolder(token);
@@ -134,7 +132,10 @@ export class GoogleDriveService {
     }
   }
 
-  private async requestToken(loginHint?: string): Promise<string> {
+  // login_hint verilmez: kullanıcı Google penceresinde serbestçe hesap seçer veya
+  // "hesap oluştur" ile yeni bir Google hesabı açar; Firebase e-postasıyla uyuşması
+  // beklenmez.
+  private async requestToken(): Promise<string> {
     await this.loadGisScript();
 
     return new Promise<string>((resolve, reject) => {
@@ -159,7 +160,6 @@ export class GoogleDriveService {
       const tokenClient = window.google?.oauth2?.initTokenClient({
         client_id: environment.google.clientId,
         scope: SCOPES,
-        ...(loginHint ? { login_hint: loginHint } : {}),
         callback: (response) => {
           settle(() => {
             if (response.access_token) {
@@ -184,44 +184,56 @@ export class GoogleDriveService {
     });
   }
 
+  // Sayfada duran script ölü bir yüklemeden kalmış olabilir (error/hesaplanamaz
+  // içerik): aralıklarla yeniden deneriz, en son denemede zaman aşımı olursa
+  // script'i sayfadan söküp temiz bir yükleme yaparız.
   private loadGisScript(): Promise<void> {
     if (window.google?.oauth2) {
       return Promise.resolve();
     }
 
-    return new Promise((resolve, reject) => {
-      const poll = window.setInterval(() => {
-        if (window.google?.oauth2) {
+    const attempt = (removeExisting: boolean): Promise<void> =>
+      new Promise<void>((resolve, reject) => {
+        const poll = window.setInterval(() => {
+          if (window.google?.oauth2) {
+            window.clearInterval(poll);
+            window.clearTimeout(timeout);
+            resolve();
+          }
+        }, 100);
+
+        const timeout = window.setTimeout(() => {
           window.clearInterval(poll);
-          window.clearTimeout(timeout);
-          resolve();
+          reject(new Error('GIS_TIMEOUT'));
+        }, 20000);
+
+        if (removeExisting) {
+          document
+            .querySelectorAll<HTMLScriptElement>(`script[src="${GIS_SCRIPT}"]`)
+            .forEach((element) => element.remove());
         }
-      }, 50);
 
-      const timeout = window.setTimeout(() => {
-        window.clearInterval(poll);
-        reject(new Error('GIS_TIMEOUT'));
-      }, 15000);
+        const existing = document.querySelector<HTMLScriptElement>(`script[src="${GIS_SCRIPT}"]`);
+        if (existing) {
+          return;
+        }
 
-      const existing = document.querySelector<HTMLScriptElement>(`script[src="${GIS_SCRIPT}"]`);
-      if (existing) {
-        return;
-      }
+        const script = document.createElement('script');
+        script.src = GIS_SCRIPT;
+        script.async = true;
+        script.addEventListener(
+          'error',
+          () => {
+            window.clearInterval(poll);
+            window.clearTimeout(timeout);
+            reject(new Error('GIS_SCRIPT_ERROR'));
+          },
+          { once: true },
+        );
+        document.head.appendChild(script);
+      });
 
-      const script = document.createElement('script');
-      script.src = GIS_SCRIPT;
-      script.async = true;
-      script.addEventListener(
-        'error',
-        () => {
-          window.clearInterval(poll);
-          window.clearTimeout(timeout);
-          reject(new Error('GIS_SCRIPT_ERROR'));
-        },
-        { once: true },
-      );
-      document.head.appendChild(script);
-    });
+    return attempt(false).catch(() => attempt(true));
   }
 
   private async fetchAccount(token: string): Promise<{ email: string }> {
@@ -232,7 +244,7 @@ export class GoogleDriveService {
       throw new Error('USERINFO_ERROR');
     }
     const data = (await response.json()) as { email?: string };
-    return { email: data.email ?? this.auth.user()?.email ?? '' };
+    return { email: data.email ?? '' };
   }
 
   private async ensureFolder(token: string): Promise<{ id: string; webViewLink: string }> {
@@ -286,12 +298,6 @@ function toDriveErrorMessage(error: unknown): string {
   switch (code) {
     case 'access_denied':
       return 'Google Drive izni geri çekildi. Tekrar deneyin.';
-    case 'ACCOUNT_MISMATCH':
-      return (
-        'Google Drive farklı bir Google hesabıyla yetkilendirildi. Bağlantı, giriş yaptığınız ' +
-        'Firebase hesabıyla aynı e-postayı kullanan Google hesabına yapılmalıdır; Google penceresinde ' +
-        'hesabı değiştirip bu e-postayla devam edin.'
-      );
     case 'GIS_NOT_READY':
     case 'TOKEN_WAIT_TIMEOUT':
       return (
@@ -307,8 +313,9 @@ function toDriveErrorMessage(error: unknown): string {
       );
     case 'GIS_TIMEOUT':
       return (
-        'Google Identity Services scripti yüklenemedi (8 sn içinde yanıt gelmedi). Sayfayı yenileyip tekrar ' +
-        'deneyin; sorun sürerse ağınızın Google erişimini (VPN/ISP engeli) kontrol edin.'
+        'Google Identity Services scripti yüklenemedi (her deneme 20 sn, 2 deneme yapıldı). Sayfayı ' +
+        'yenileyip tekrar deneyin; sorun sürerse tarayıcı geliştirici konsolunun Network sekmesinde ' +
+        'accounts.google.com isteğinin sonucunu ve ağınızın Google erişimini (VPN/ISP engeli) kontrol edin.'
       );
     case 'FOLDER_CREATE_ERROR':
       return (

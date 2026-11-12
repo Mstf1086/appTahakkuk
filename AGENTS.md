@@ -118,7 +118,7 @@ These rules exist to keep the context window small while still delivering verifi
 - `src/app/core/app-info.ts` — exports `APP_VERSION`, read from `package.json`; the footer renders it.
 - `src/app/layout/shell.component.*` — responsive frame: flex column with `min-height: 100vh`, so the footer pins to the viewport bottom while content grows; top navigation on desktop, slide-in sidebar on mobile.
 - `src/app/layout/footer.component.*` — application footer showing the app name, copyright, and the current version (no navigation links).
-- `src/app/features/login/*` — login and account creation form (no module cards).
+- `src/app/features/login/*` — login form (email/password **and** Google popup sign-in) and account creation (no module cards).
 - `src/app/features/dashboard/*` — dashboard page; contains only the module card grid (5 modules per row on desktop), no summary cards or activity panel.
 - `src/app/features/profile/*` — profile details, display name editing, and the "Bağlı hesaplar" panel (Google Drive link status and account info).
 - `src/app/features/modules/stamp-tax/*` — public damga vergisi hesaplama module (damga vergisi kesintisi, KDV dahil fatura bedeli, ödenecek tutar).
@@ -168,7 +168,7 @@ These rules exist to keep the context window small while still delivering verifi
 
 ## Firebase Authentication
 
-- The project is `tahakkuk-bc03b`. The **Email/Password** provider must be enabled in the Firebase console (Authentication → Sign-in method) for the login form to work.
+- The project is `tahakkuk-bc03b`. The **Email/Password** and **Google** providers must be enabled in the Firebase console (Authentication → Sign-in method) for the login form to work; the Google button uses `signInWithPopup` (Firebase's own OAuth flow, no Cloud Console client id needed).
 - Firebase console → Authentication → Settings → **Authorized domains** must contain the deployment domain (localhost is allowed by default in development).
 - `AuthService` owns every auth call; components never call the Firebase SDK directly.
 - `authGuard` protects the shell route, so `/dashboard` and `/profile` redirect to `/login?returnUrl=...` when there is no session.
@@ -179,7 +179,8 @@ These rules exist to keep the context window small while still delivering verifi
 - Requires a signed-in Firebase user and `VITE_GOOGLE_CLIENT_ID` (Google Cloud OAuth Web client with `http://localhost:4200` and the deployment origin in **Authorized JavaScript origins**; **Google Drive API** enabled).
 - Scope is `https://www.googleapis.com/auth/drive.file` plus `email`/`profile` — never the broad `drive` scope.
 - On connect the service fetches the Google account email, then finds or creates the `tahakkuk.web.app` folder in the user's Drive root and stores `{ uid, email, folderId, folderUrl, connectedAt }` in `sessionStorage` only.
-- The Google token request must pass the signed-in Firebase user's email as `login_hint`, and the returned Google account email must match the Firebase account email (case-insensitive); a mismatch is rejected with `ACCOUNT_MISMATCH`. Drive is always linked to the same account that signed in via Firebase Auth.
+- The GIS script is loaded from `src/index.html`; if it is not ready when the button is pressed, the service waits up to 20s, then removes the stale `<script>` tag and retries once more (two attempts total).
+- Any signed-in Google account may be linked, regardless of the Firebase account email (the Google window is opened without `login_hint`, so a new Google account can also be created there); the signed-in Google account's email is what is displayed and persisted.
 - All token/folder logic stays in `src/app/core/google-drive.service.ts`; the profile page only renders `status` / `info` / `error` and calls `connect()` / `disconnect()`.
 
 ## Testing instructions

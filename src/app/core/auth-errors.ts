@@ -8,6 +8,14 @@ const messages: Record<string, string> = {
   'auth/too-many-requests': 'Çok fazla deneme yapıldı. Lütfen biraz sonra tekrar deneyin.',
   'auth/network-request-failed': 'Ağ bağlantısı kurulamadı. İnternet bağlantınızı kontrol edin.',
   'auth/user-disabled': 'Bu hesap devre dışı bırakılmış.',
+  'auth/popup-closed-by-user': 'Google giriş penceresi kapatıldı. Girişi tekrar deneyin.',
+  'auth/popup-blocked': 'Tarayıcı Google giriş penceresini engelledi. Pop-up engelleyicisini kapatıp tekrar deneyin.',
+  'auth/cancelled-popup-request': 'Google giriş penceresi açılamadı. Pop-up engelleyicisini kapatıp tekrar deneyin.',
+  'auth/unauthorized-domain':
+    'Bu alan adı Firebase Authentication → Settings → Authorized domains listesinde yok. ' +
+    'tahakkuk.web.app adresini ekleyin.',
+  'auth/operation-not-allowed':
+    'Google ile giriş Firebase Authentication → Sign-in method altında etkin değil.',
 };
 
 export function toAuthErrorMessage(error: unknown): string {

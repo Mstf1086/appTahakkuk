@@ -7,6 +7,35 @@ sürümler [Semantic Versioning](https://semver.org/lang/tr/) kurallarına uyar.
 son bileşeni bir artırılır (`0.0.1` → `0.0.2`); `0.0` (major.minor) kısmı yalnızca proje sahibi
 istediğinde değiştirilir.
 
+## [0.0.13] - 2026-11-12
+
+### Eklenen
+
+- **Login ekranına Google ile giriş**: "Giriş yap" modunda formun altında "Google ile giriş yap"
+  düğmesi (hesap oluşturma modunda görünmez). Giriş Firebase'in kendi OAuth akışıyla
+  (`signInWithPopup`) yapılır; bu akış Cloud Console origins veya `VITE_GOOGLE_CLIENT_ID`
+  gerektirmez — yalnızca Firebase Console'da Google sağlayıcısının etkin olması yeterlidir.
+
+### Değiştirilen
+
+- Google Drive yetkilendirmesi artık **Firebase e-postasına bağlı değil**: `login_hint` kaldırıldı,
+  `ACCOUNT_MISMATCH` kontrolü atıldı. Kullanıcı Google penceresinde serbestçe hesap seçer veya
+  yeni bir Google hesabı oluşturur; bağlantı seçilen Google hesabına yapılır (ör.
+  `asd@asd.com` ile Firebase'de giriş yapan biri Drive'ına ait herhangi bir Google hesabını
+  seçebilir).
+- GIS scripti yüklemesi dayanıklı hale getirildi: timeout 15 sn'den 20 sn'ye çıkarıldı ve
+  ilk denemede yüklenmeyen script sayfadan sökülüp **2 kez** denenir (zayıf ağda yarıda
+  kalan script'in üstüne yazılmaz).
+
+### Düzeltilen
+
+- "GIS scripti yüklenemedi (8 sn...)" hata metni gerçek süreyi (20 sn x 2 deneme) yansıtacak
+  şekilde ve tarayıcı Network sekmesini işaret ederek güncellendi.
+- `fetchAccount` artık e-posta alınamazsa Firebase e-postasıyla kapatmak yerine
+  `USERINFO_ERROR` üretir; bağlı hesap her zaman gerçek Google hesabıdır.
+- Google giriş hataları (`popup-blocked`, `popup-closed-by-user`, `unauthorized-domain`,
+  `operation-not-allowed`) Türkçe çözüm önerileriyle `auth-errors.ts`'e taşındı.
+
 ## [0.0.11] - 2026-11-12
 
 ### Eklenen

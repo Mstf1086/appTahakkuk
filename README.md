@@ -20,7 +20,7 @@ Hesaplama** modülü ise misafirler tarafından da giriş yapılmadan kullanıla
 
 ## Özellikler
 
-- **Firebase Authentication**: e-posta/şifre ile giriş, hesap oluşturma ve çıkış.
+- **Firebase Authentication**: e-posta/şifre ile giriş, **Google ile giriş**, hesap oluşturma ve çıkış.
 - **Korumalı alan**: `/profile` rotası `authGuard` ile korunur ve menülerde yalnızca giriş yapmış
   kullanıcılara gösterilir; oturum yoksa `/login?returnUrl=...` adresine yönlendirilir.
 - **Misafir erişimi**: `/` (varsayılan sayfa) ve `/dashboard` misafirlere açıktır; dashboard’da
@@ -101,6 +101,19 @@ komutlarından önce otomatik çalışır (`pre*` scriptleri).
 4. **Project settings → Your apps → Web** uygulamasından yapılandırma değerlerini `.env`
    dosyasına kopyalayın.
 
+## Google ile giriş
+
+Login ekranındaki **Google ile giriş yap** düğmesi `signInWithPopup` ile Firebase'in kendi
+OAuth akışını kullanır; Drive bağlantısından bağımsızdır. Gereken tek yapılandırma:
+
+1. [Firebase Console](https://console.firebase.google.com/) → **Authentication → Sign-in method** →
+   **Google**'ı etkinleştirin (e-posta adresinizi "developer e-postası" olarak seçebilirsiniz).
+2. Firebase Authentication → **Settings → Authorized domains** içinde yayın alan adınız
+   (ör. `tahakkuk.web.app`) bulunmalı; `localhost` geliştirme için varsayılan olarak içerindedir.
+
+Google ile giriş yapan kullanıcının Firebase hesabı otomatik oluşturulur; bu hesap ile
+profil sayfasından Google Drive'a bağlanılabilir.
+
 ## Google Drive yapılandırması
 
 Profil sayfasındaki **Google Drive’a bağlan** düğmesi Google Identity Services (GIS) ile OAuth 2.0
@@ -124,9 +137,14 @@ okunmaz. Bağlantı bilgisi (hesap e-postası, klasör kimliği, bağlantı tari
 Profil sayfasında bağlantı durumu, bağlı Google hesabı ve klasör bilgisi "Bağlı hesaplar"
 panelinde gösterilir.
 
+Google penceresinde hangi hesap seçilirse bağlantı o hesaba yapılır; Firebase e-postasıyla
+aynı olması gerekmez ve pencerede hesap oluşturmak da mümkündür.
+
 > Not: `src/index.html` içindeki `accounts.google.com/gsi/client` scripti sayfa yüklenirken
-> çalışır. Google'a erişimin engellendiği ağlarda (bazı VPN/ISP yapılandırmaları) bağlantı
-> kurulamaz; bu durumda hata mesajı ağ erişimini kontrol etmenizi önerir.
+> çalışır. Butona basıldığında scriptin hazırlanmadığı görülürse uygulama, ölü scripti
+> sayfadan sökerek toplam 2 kez (her biri 20 sn) yeniden yüklemeyi dener. Google'a erişimin
+> engellendiği ağlarda (bazı VPN/ISP yapılandırmaları) bağlantı kurulamaz; bu durumda hata
+> mesajı ağ erişimini kontrol etmenizi önerir.
 
 ## Çalıştırma
 
@@ -138,7 +156,7 @@ npm run watch      # geliştirme derlemesi, watch modunda
 Uygulamada:
 
 - `/` ve `/dashboard` → misafirler için de açık.
-- `/login` → giriş ve hesap oluşturma ekranı.
+- `/login` → giriş (e-posta/şifre veya Google) ve hesap oluşturma ekranı.
 - `/modules/stamp-tax` → giriş gerektirmeyen damga vergisi hesaplama modülü (üst menü ve footer
   görünür, menülerde listelenmez).
 - `/profile` → giriş yapmış kullanıcıların profil bilgileri (korumalı; menüde yalnızca giriş
