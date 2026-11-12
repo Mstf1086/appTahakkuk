@@ -142,8 +142,8 @@ export class GoogleDriveService {
       };
 
       // Yetkilendirme penceresi yanıt vermezse (pop-up engellendi, pencere kapatıldı,
-      // orijin Cloud Console'da kayıtlı değil) GIS callback'i tetiklemeyebilir. Aşağıdaki
-      // zaman aşımı durumun "Bağlanıyor..." şeklinde asılı kalmasını engeller.
+      // orijin Cloud Console'da kayıtlı değil) GIS callback'i tetiklenmeyebilir.
+      // Aşağıdaki zaman aşımı durumun "Bağlanıyor..." şeklinde asılı kalmasını engeller.
       const timeout = window.setTimeout(() => {
         settle(() => reject(new Error('TOKEN_WAIT_TIMEOUT')));
       }, 45000);
@@ -192,7 +192,7 @@ export class GoogleDriveService {
       const timeout = window.setTimeout(() => {
         window.clearInterval(poll);
         reject(new Error('GIS_TIMEOUT'));
-      }, 8000);
+      }, 15000);
 
       const existing = document.querySelector<HTMLScriptElement>(`script[src="${GIS_SCRIPT}"]`);
       if (existing) {
@@ -278,19 +278,22 @@ function toDriveErrorMessage(error: unknown): string {
     case 'access_denied':
       return 'Google Drive izni geri çekildi. Tekrar deneyin.';
     case 'GIS_NOT_READY':
-    case 'GIS_SCRIPT_ERROR':
-    case 'GIS_TIMEOUT':
-      return (
-        'Google ile yetkilendirme tamamlanmadı (kod: ' + code + '). Tarayıcının pop-up engelleyicisini kapatın; ' +
-        'Cloud Console → Credentials → Web istemcisi → Authorized JavaScript origins listesinde bulunduğunuz adres ' +
-        '(ör. http://localhost:4200) kayıtlı olmalı.'
-      );
     case 'TOKEN_WAIT_TIMEOUT':
       return (
         'Google yetkilendirme penceresi yanıt vermedi. Pencere açıldıysa izin verin; açılmadıysa pop-up ' +
         'engelleyicisini kapatın ve Cloud Console → Credentials → Web istemcisi → Authorized JavaScript origins ' +
-        "içinde bulunduğunuz adresin (ör. http://localhost:4200) kayıtlı olduğundan emin olun. Google Drive API'nin " +
-        'etkin olduğundan ve OAuth consent ekranının doğru hesabın test kullanıcısı olarak eklendiğinden emin olun.'
+        'içinde bulunduğunuz adresin (ör. http://localhost:4200) kayıtlı olduğundan emin olun. Google Drive ' +
+        "API'nin etkin olduğundan ve OAuth consent ekranında hesabınızın Test users listesinde olduğundan emin olun."
+      );
+    case 'GIS_SCRIPT_ERROR':
+      return (
+        'Google Identity Services scripti yüklenemedi. İnternet bağlantınızı ve Google (accounts.google.com) ' +
+        'erişimini kontrol edin; bazı ağlar/ISP\'ler bu adresi engeller.'
+      );
+    case 'GIS_TIMEOUT':
+      return (
+        'Google Identity Services scripti yüklenemedi (8 sn içinde yanıt gelmedi). Sayfayı yenileyip tekrar ' +
+        'deneyin; sorun sürerse ağınızın Google erişimini (VPN/ISP engeli) kontrol edin.'
       );
     case 'FOLDER_CREATE_ERROR':
       return (

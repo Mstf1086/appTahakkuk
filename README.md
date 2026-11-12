@@ -124,6 +124,10 @@ okunmaz. Bağlantı bilgisi (hesap e-postası, klasör kimliği, bağlantı tari
 Profil sayfasında bağlantı durumu, bağlı Google hesabı ve klasör bilgisi "Bağlı hesaplar"
 panelinde gösterilir.
 
+> Not: `src/index.html` içindeki `accounts.google.com/gsi/client` scripti sayfa yüklenirken
+> çalışır. Google'a erişimin engellendiği ağlarda (bazı VPN/ISP yapılandırmaları) bağlantı
+> kurulamaz; bu durumda hata mesajı ağ erişimini kontrol etmenizi önerir.
+
 ## Çalıştırma
 
 ```bash

@@ -7,10 +7,23 @@ sürümler [Semantic Versioning](https://semver.org/lang/tr/) kurallarına uyar.
 son bileşeni bir artırılır (`0.0.1` → `0.0.2`); `0.0` (major.minor) kısmı yalnızca proje sahibi
 istediğinde değiştirilir.
 
+## [0.0.7] - 2026-11-12
+
+### Değiştirilen
+
+- Google Identity Services scripti artık `src/index.html` içinde sayfa yüklenirken çalışır
+  (`async defer`) ve uygulama içi dinamik yükleme yedeği olarak kalır; butona basıldığında
+  script'in hazır olup olmadığına kalmadan yetkilendirme akışı başlar.
+- Script yüklenme zaman aşımı 8 sn'den 15 sn'ye çıkarıldı (yavaş/engelli ağlarda erken
+  hata yerine makul bekleme).
+
 ## [0.0.6] - 2026-11-12
 
 ### Düzeltilen
 
+- `GIS_TIMEOUT` (script yüklenemedi) artık orijin/pop-up hatası olarak yanlış gösterilmiyor; ağ/Google
+  erişim sorunu olarak doğru mesaj veriliyor. Pencere yanıt vermezse `TOKEN_WAIT_TIMEOUT`, script
+  yüklenemezse `GIS_SCRIPT_ERROR` / `GIS_TIMEOUT` kodlarıyla ayrı mesajlar gösteriliyor.
 - Google Drive bağlantısı başarısız olduğunda gösterilen hata mesajı artık **hata kodunu ve
   çözüm adımını** içeriyor: orijin/Authorized JavaScript origins uyarısı (yetkilendirme
   zaman aşımı), Google Drive API etkinliği uyarısı (klasör oluşturma hatası).
