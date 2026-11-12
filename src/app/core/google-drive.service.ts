@@ -130,24 +130,48 @@ export class GoogleDriveService {
     await this.loadGisScript();
 
     return new Promise<string>((resolve, reject) => {
+      let settled = false;
+
+      const settle = (action: () => void) => {
+        if (settled) {
+          return;
+        }
+        settled = true;
+        window.clearTimeout(timeout);
+        action();
+      };
+
+      // Yetkilendirme penceresi yanıt vermezse (pop-up engellendi, pencere kapatıldı,
+      // orijin Cloud Console'da kayıtlı değil) GIS callback'i tetiklemeyebilir. Aşağıdaki
+      // zaman aşımı durumun "Bağlanıyor..." şeklinde asılı kalmasını engeller.
+      const timeout = window.setTimeout(() => {
+        settle(() => reject(new Error('TOKEN_WAIT_TIMEOUT')));
+      }, 45000);
+
       const tokenClient = window.google?.oauth2?.initTokenClient({
         client_id: environment.google.clientId,
         scope: SCOPES,
         callback: (response) => {
-          if (response.access_token) {
-            resolve(response.access_token);
-          } else {
-            reject(new Error(response.error || 'TOKEN_ERROR'));
-          }
+          settle(() => {
+            if (response.access_token) {
+              resolve(response.access_token);
+            } else {
+              reject(new Error(response.error || 'TOKEN_ERROR'));
+            }
+          });
         },
       });
 
       if (!tokenClient) {
-        reject(new Error('GIS_NOT_READY'));
+        settle(() => reject(new Error('GIS_NOT_READY')));
         return;
       }
 
-      tokenClient.requestAccessToken({ prompt: 'consent' });
+      try {
+        tokenClient.requestAccessToken({ prompt: 'consent' });
+      } catch (error) {
+        settle(() => reject(error instanceof Error ? error : new Error('TOKEN_START_ERROR')));
+      }
     });
   }
 
@@ -256,12 +280,26 @@ function toDriveErrorMessage(error: unknown): string {
     case 'GIS_NOT_READY':
     case 'GIS_SCRIPT_ERROR':
     case 'GIS_TIMEOUT':
-      return 'Google ile yetkilendirme servisi yüklenemedi. Sayfayı yenileyip tekrar deneyin.';
+      return (
+        'Google ile yetkilendirme tamamlanmadı (kod: ' + code + '). Tarayıcının pop-up engelleyicisini kapatın; ' +
+        'Cloud Console → Credentials → Web istemcisi → Authorized JavaScript origins listesinde bulunduğunuz adres ' +
+        '(ör. http://localhost:4200) kayıtlı olmalı.'
+      );
+    case 'TOKEN_WAIT_TIMEOUT':
+      return (
+        'Google yetkilendirme penceresi yanıt vermedi. Pencere açıldıysa izin verin; açılmadıysa pop-up ' +
+        'engelleyicisini kapatın ve Cloud Console → Credentials → Web istemcisi → Authorized JavaScript origins ' +
+        "içinde bulunduğunuz adresin (ör. http://localhost:4200) kayıtlı olduğundan emin olun. Google Drive API'nin " +
+        'etkin olduğundan ve OAuth consent ekranının doğru hesabın test kullanıcısı olarak eklendiğinden emin olun.'
+      );
     case 'FOLDER_CREATE_ERROR':
-      return 'Google Drive klasörü oluşturulamadı. Yetkinizi kontrol edip tekrar deneyin.';
+      return (
+        'Google Drive klasörü oluşturulamadı (kod: ' + code + '). Cloud Console → APIs & Services → Library ' +
+        'içinde Google Drive API etkin mi kontrol edin ve yetkide drive dosyalarına erişim izni verin.'
+      );
     case 'USERINFO_ERROR':
-      return 'Google hesabı bilgisi alınamadı. Tekrar deneyin.';
+      return 'Google hesabı bilgisi alınamadı (kod: ' + code + '). Tekrar deneyin.';
     default:
-      return 'Google Drive bağlantısı kurulamadı. Tekrar deneyin.';
+      return 'Google Drive bağlantısı kurulamadı (kod: ' + (code || 'bilinmiyor') + ').';
   }
 }

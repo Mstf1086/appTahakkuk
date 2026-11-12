@@ -7,7 +7,20 @@ sürümler [Semantic Versioning](https://semver.org/lang/tr/) kurallarına uyar.
 son bileşeni bir artırılır (`0.0.1` → `0.0.2`); `0.0` (major.minor) kısmı yalnızca proje sahibi
 istediğinde değiştirilir.
 
-## [0.0.5] - 2026-11-11
+## [0.0.6] - 2026-11-12
+
+### Düzeltilen
+
+- Google Drive bağlantısı başarısız olduğunda gösterilen hata mesajı artık **hata kodunu ve
+  çözüm adımını** içeriyor: orijin/Authorized JavaScript origins uyarısı (yetkilendirme
+  zaman aşımı), Google Drive API etkinliği uyarısı (klasör oluşturma hatası).
+- Hata mesajları, bağlantı akışının hangi adımında (token / hesap bilgisi / klasör oluşturma)
+  takıldığını gösteriyor.
+- Yetkilendirme penceresi hiç yanıt vermediğinde (pop-up engellendi, pencere kapatıldı, orijin
+  kayıtlı değil) arayüz 45 sn sonra **"Bağlanıyor..."** durumunda asılı kalmaz, hata kodu
+  `TOKEN_WAIT_TIMEOUT` ile çözüm adımlarını gösterir.
+
+
 
 ### Eklenen
 

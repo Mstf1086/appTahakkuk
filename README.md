@@ -235,6 +235,7 @@ bölümüne bakın.
 | Değişiklikler görünmüyor | `npm start` çalışıyor mu? `npm run env:generate` sonrası yeniden başlatın. |
 | “Google OAuth istemci kimliği yapılandırılmamış” | `.env` içine `VITE_GOOGLE_CLIENT_ID` ekleyip `npm run env:generate` çalıştırın. |
 | Google ile yetkilendirme penceresi açılmıyor | Cloud Console → Credentials → Web client → **Authorized JavaScript origins** içine `http://localhost:4200` ekleyin; Drive API etkin olmalı. |
+| Yetkilendirme 45 sn sonra “pencere yanıt vermedi” hatası veriyor | Pencere pop-up engelleyicide açıldıysa izne basın; yoksa bulundüğunuz adresin (ör. `http://localhost:4200`) **Authorized JavaScript origins** listesinde olduğunu ve OAuth consent ekranında hesabınızın **Test users** listesinde olduğunu kontrol edin. |
 | Drive klasörü oluşmuyor | OAuth consent screen → Test users listesinde hesabınız olsun; `drive.file` kapsamı için ek izin gerekmez. |
 
 ## İlgili belgeler
