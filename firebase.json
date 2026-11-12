@@ -1,5 +1,6 @@
 {
   "hosting": {
+    "target": "tahakkuk",
     "public": "dist/tahakkuk/browser",
     "ignore": [
       "firebase.json",

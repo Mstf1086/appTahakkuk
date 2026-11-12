@@ -161,10 +161,10 @@ These rules exist to keep the context window small while still delivering verifi
 
 ## Firebase Hosting
 
-- The app deploys to the `tahakkuk-bc03b` project (`.firebaserc` → `default`); the live URL is `https://tahakkuk-bc03b.web.app`.
+- The app deploys to the `tahakkuk` Hosting site of the `tahakkuk-bc03b` project (`firebase.json` → `hosting.target: "tahakkuk"`, applied via `firebase target:apply hosting tahakkuk tahakkuk`); the primary live URL is `https://tahakkuk.web.app`. A second site `https://tahakkuk-bc03b.web.app` exists in the same project.
 - `firebase.json` → `hosting.public` is `dist/tahakkuk/browser` (the `@angular/build` application output). Pointing it anywhere else (e.g. `dist`) publishes Firebase's stock "Welcome to Firebase Hosting" page instead of the app.
 - `hosting.rewrites` sends every path to `index.html` (SPA routing).
-- Both the Firebase **Authorized domains** and the Google Cloud **Authorized JavaScript origins** lists must include `tahakkuk-bc03b.web.app` for auth and the Google Drive flow to work in production.
+- Both the Firebase **Authorized domains** and the Google Cloud **Authorized JavaScript origins** lists must include `tahakkuk.web.app` for auth and the Google Drive flow to work in production.
 
 ## Firebase Authentication
 

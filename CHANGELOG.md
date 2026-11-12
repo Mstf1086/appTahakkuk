@@ -7,6 +7,15 @@ sürümler [Semantic Versioning](https://semver.org/lang/tr/) kurallarına uyar.
 son bileşeni bir artırılır (`0.0.1` → `0.0.2`); `0.0` (major.minor) kısmı yalnızca proje sahibi
 istediğinde değiştirilir.
 
+## [0.0.10] - 2026-11-12
+
+### Değiştirilen
+
+- Deploy hedefi Firebase Hosting sitesinden seçildi: `firebase target:apply hosting tahakkuk
+  tahakkuk` + `firebase.json` → `hosting.target: "tahakkuk"`. Birincil yayın adresi artık
+  **`https://tahakkuk.web.app`** (`tahakkuk-bc03b.web.app` sitesinde aynı proje kalır).
+- README ve AGENTS.md deploy bölümü yeni hedefe ve adrese göre güncellendi.
+
 ## [0.0.9] - 2026-11-12
 
 ### Düzeltilen

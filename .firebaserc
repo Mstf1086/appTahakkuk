@@ -1,5 +1,15 @@
 {
   "projects": {
     "default": "tahakkuk-bc03b"
-  }
+  },
+  "targets": {
+    "tahakkuk-bc03b": {
+      "hosting": {
+        "tahakkuk": [
+          "tahakkuk"
+        ]
+      }
+    }
+  },
+  "etags": {}
 }
