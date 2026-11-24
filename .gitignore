@@ -47,4 +47,7 @@ Thumbs.db
 !.env.example
 /src/environments/environment.ts
 
+# API credentials
+.kimi-code/api.json
+
 .firebase/

@@ -2,9 +2,9 @@
 
 ## Project overview
 
-This repository contains an **Angular 22** single-page application named **Tahakkuk**. Users sign in with **Firebase Authentication** (email/password) and then reach a protected area with a **dashboard**, a **profile** page, and a **logout** action.
+This repository contains an **Angular 22** single-page application named **Tahakkuk**. Users sign in with **Firebase Authentication** (email/password) and then reach a protected area with an **anasayfa**, a **profile** page, and a **logout** action.
 
-The **Damga Vergisi Hesaplama** module (`/modules/stamp-tax`) is intentionally public: guests can open it from the dashboard module card or by URL without signing in. Every other feature route stays behind `authGuard`.
+The **Damga Vergisi Hesaplama** module (`/modules/damga-vergisi-modulu`) and the **Dosya Modülü** (`/modules/dosya`) are intentionally public: guests can open them from the anasayfa module cards or by URL without signing in. Every other feature route stays behind `authGuard`.
 
 The navigation adapts to the viewport: on desktop (≥ 900px) the menu sits in the top bar; on mobile the menu opens as a slide-in panel from the left.
 
@@ -12,8 +12,8 @@ The user-facing language is Turkish. Keep UI text and test names in Turkish unle
 
 ## Runtime and toolchain
 
-- **Node:** v24.22.2 LTS (pinned in `.nvmrc`; nvm default alias is `24`).
-- **npm:** 11.19.1 (ships with Node 24.22.2).
+- **Node:** v24.22.3 LTS (pinned in `.nvmrc`; nvm default alias is `24`).
+- **npm:** 11.19.1 (ships with Node 24.22.3).
 - **Angular:** 22.2.5 with `@angular/build` 22.2.6 (the `application` builder; the legacy `@angular-devkit/build-angular` package is gone).
 - **Angular CLI:** 22.2.6, installed globally with `npm install -g @angular/cli`.
 - **Vite:** installed independently as a devDependency (`npm install -D vite`, currently 8.3.8) in addition to the Vite-based dev server and Vitest runner that `@angular/build` uses internally.
@@ -108,19 +108,26 @@ These rules exist to keep the context window small while still delivering verifi
 - `src/index.html`, `src/styles.css` — app shell, global styles, and SEO meta tags (description, Open Graph, Twitter Card, JSON-LD, canonical).
 - `public/` — static assets (`favicon.ico`, `robots.txt`).
 - `src/app/app.component.*` — root component; renders the router outlet only.
-- `src/app/app.config.ts`, `src/app/app.routes.ts` — providers and routing. The shell route is public and renders the top menu; `dashboard` (the default page) and `modules/stamp-tax` are public child routes, while `profile` stays behind `authGuard`. The app registers the `tr-TR` locale and provides `LOCALE_ID`.
+- `src/app/app.config.ts`, `src/app/app.routes.ts` — providers and routing. The shell route is public and renders the top menu; `anasayfa` (the default page), `modules/damga-vergisi-modulu`, `modules/dosya`, `policy` and `terms` are public child routes, while `profile` stays behind `authGuard`. The app registers the `tr-TR` locale and provides `LOCALE_ID`.
 - `src/app/core/firebase.ts` — Firebase initialization; exports `firebaseApp`, `auth`, `db`, `storage`, `firebaseConfig`, `isFirebaseConfigured`.
 - `src/app/core/auth.service.ts` — Firebase Authentication wrapper (login, register, logout, profile update) with signal-based state.
 - `src/app/core/auth.guard.ts` — route guard that redirects unauthenticated users to `/login?returnUrl=...`.
 - `src/app/core/auth-errors.ts` — maps Firebase error codes to Turkish messages.
+- `src/app/core/error-handler.ts` — global `ErrorHandler`; yakalanmamış hataları `ErrorLogger` üzerinden konsola yazar.
+- `src/app/core/error-logger.ts` — merkezi hata günlüğü (`ErrorLogger` servisi + `writeErrorLog`); tüm hatalar `[Tahakkuk] [HATA]/[UYARI] <bağlam> | <zaman damgası> | <hata>` biçiminde konsola yazılır, Firebase hata kodu ve ek ayrıntılar ayrı argüman olarak eklenir.
+- `src/app/core/global-error-listeners.ts` — `window.onerror` ve `unhandledrejection` dinleyicileri; `main.ts` içinde bootstrap öncesinde kurulur.
+- Every `catch` block that swallows an error must also log it through `ErrorLogger` (`error()` / `warn()`); raw `console.*` calls are only allowed inside `error-logger.ts`.
 - `src/app/core/seo.service.ts` — sets the page title, meta description/keywords, Open Graph, Twitter Card, and the canonical link for the active page.
-- `src/app/core/google-drive.service.ts` — Google Identity Services token flow (`VITE_GOOGLE_CLIENT_ID`, scopes `drive.file` + `email` + `profile`) and Drive API v3 folder creation (`tahakkuk.web.app`); connection info lives in `sessionStorage`.
+- `src/app/core/google-drive.service.ts` — Google Identity Services token flow (`VITE_GOOGLE_CLIENT_ID`, scopes `drive.file` + `email` + `profile`), Drive API v3 folder creation (`tahakkuk.web.app`) and the "dosyalar" Google Sheets export/read-back (Sheets API `values:append` / `values:get`); access tokens stay in memory only, the link metadata stays in `localStorage` until sign-out.
+- `src/app/core/idle-timeout.service.ts` — 30-minute inactivity timeout: user interactions (pointer/keyboard/touch/wheel) reset the timer; on expiry the session is closed via `AuthService.logout()` and the user is sent to `/login?reason=idle`.
 - `src/app/core/app-info.ts` — exports `APP_VERSION`, read from `package.json`; the footer renders it.
 - `src/app/layout/shell.component.*` — responsive frame: flex column with `min-height: 100vh`, so the footer pins to the viewport bottom while content grows; top navigation on desktop, slide-in sidebar on mobile.
 - `src/app/layout/footer.component.*` — application footer showing the app name, copyright, and the current version (no navigation links).
 - `src/app/features/login/*` — login form (email/password **and** Google popup sign-in) and account creation (no module cards).
-- `src/app/features/dashboard/*` — dashboard page; contains only the module card grid (5 modules per row on desktop), no summary cards or activity panel.
+- `src/app/features/home/*` — public anasayfa (`/anasayfa`): two module-grid cards — **Ana Modüller** (Dosya Modülü, the main module) on top and **Yardımcı Modüller** (Damga Vergisi Hesaplama) below.
 - `src/app/features/profile/*` — profile details, display name editing, and the "Bağlı hesaplar" panel (Google Drive link status and account info).
+- `src/app/features/legal/*` — public legal pages: `policy.component.*` (`/policy`, privacy policy) and `terms.component.*` (`/terms`, terms of service); guest-accessible shell children used for OAuth consent screen verification links.
+- `src/app/features/modules/documents/*` — public Dosya Modülü (`/modules/dosya`): record list, simple menu (Yeni kayıt / Düzenle / Sil / Drive'a Kaydet / Drive'dan Yükle), modal dialogs (record picker + record form), `document.schema.json` validation source, `documents.service.ts` (localStorage-backed records, cleared on sign-out), Drive "dosyalar" sheet export through `GoogleDriveService.saveDocumentsToSheet()` and sheet read-back through `GoogleDriveService.loadSheetRows()`, which an effect triggers automatically when the module opens and the Drive link is present.
 - `src/app/features/modules/stamp-tax/*` — public damga vergisi hesaplama module (damga vergisi kesintisi, KDV dahil fatura bedeli, ödenecek tutar).
 - `src/environments/environment.ts` — generated from `.env`; never edit or commit it.
 - `scripts/generate-env.mjs` — reads `.env` and writes `src/environments/environment.ts`.
@@ -141,16 +148,17 @@ These rules exist to keep the context window small while still delivering verifi
 
 ## Feature and access rules
 
-- **The dashboard is the default page for everyone.** `/` redirects to `/dashboard`, and the dashboard route is public: guests see the module grid. Only `/profile` stays behind `authGuard`.
+- **The anasayfa is the default page for everyone.** `/` redirects to `/anasayfa`, and the anasayfa route is public: guests see the module grids. Only `/profile` stays behind `authGuard`.
 - **Profile is invisible to guests.** The "Profil" entry exists only in the top menu and the mobile sidebar for signed-in users; the footer contains no navigation links at all (brand, copyright, version only).
-- **The damga vergisi module is a guest feature.** `/modules/stamp-tax` is a child route of the shell, so the top menu and footer stay visible for both guests and signed-in users; it is linked from the dashboard module grid only.
-- **The module must not be listed in the top menu or the mobile sidebar.** It is reachable only from the dashboard card (never from the login screen or the menus).
-- New public modules follow the same shape: a child route of the shell (so the frame stays consistent), a guest-friendly header with a "Giriş yap" entry, and a card on the dashboard.
-- **Google Drive linking requires a signed-in Firebase user and `VITE_GOOGLE_CLIENT_ID`.** Keep token handling inside `GoogleDriveService`; components only call `connect()` / `disconnect()` and render `status`, `info`, `error`. Never request the broad `drive` scope — `drive.file` only — and never persist tokens beyond `sessionStorage`.
+- **The damga vergisi module is a guest feature.** `/modules/damga-vergisi-modulu` is a child route of the shell, so the top menu and footer stay visible for both guests and signed-in users; it is linked from the anasayfa yardımcı modül card only.
+- **The modules must not be listed in the top menu or the mobile sidebar.** They are reachable only from the anasayfa cards (never from the login screen or the menus).
+- New public modules follow the same shape: a child route of the shell (so the frame stays consistent), a guest-friendly header with a "Giriş yap" entry, and a card on the anasayfa (main-module card for ana modules, helper card for yardımcı modules).
+- **Google Drive linking requires a signed-in Firebase user and `VITE_GOOGLE_CLIENT_ID`.** Keep token handling inside `GoogleDriveService`; components only call `connect()` / `disconnect()` and render `status`, `info`, `error`. Never request the broad `drive` scope — `drive.file` only — and never persist tokens (memory only).
 - The shell layout must keep the footer pinned to the bottom: `.shell` is a flex column with `min-height: 100vh`, `.content { flex: 1 0 auto; }`, `.footer { margin-top: auto; }`. Do not add fixed positioning to the footer.
 - Calculation rules for the module: damga vergisi kesintisi = KDV hariç fatura bedeli × 9,48/1000; KDV dahil fatura bedeli = KDV hariç bedel + KDV bedeli; ödenecek tutar = KDV dahil fatura bedeli − damga vergisi kesintisi − tevkifat kesintisi. KDV bedeli and tevkifat kesintisi are manual inputs.
-- Never invent modules, cards, or dashboard entries for functionality that does not exist; show only implemented features. The dashboard intentionally contains only real module cards — no placeholder summary cards or activity list.
+- Never invent modules, cards, or module entries for functionality that does not exist; show only implemented features. The anasayfa intentionally contains only real module cards — no placeholder summary cards or activity list.
 - Every new route sets a Turkish `title` in `app.routes.ts` and calls `SeoService.setPage()` with a unique description.
+- **Idle session timeout (30 minutes).** `IdleTimeoutService` (instantiated in `AppComponent`) watches pointer/keyboard/touch/wheel activity while a user is signed in; 30 minutes without activity closes the session via `AuthService.logout()` and redirects to `/login?reason=idle` (login page shows a Turkish notice). Sign-out clears every `tahakkuk.*` browser key, so the Drive link closes with the session.
 
 ## Environment variables
 
@@ -171,17 +179,21 @@ These rules exist to keep the context window small while still delivering verifi
 - The project is `tahakkuk-bc03b`. The **Email/Password** and **Google** providers must be enabled in the Firebase console (Authentication → Sign-in method) for the login form to work; the Google button uses `signInWithPopup` (Firebase's own OAuth flow, no Cloud Console client id needed).
 - Firebase console → Authentication → Settings → **Authorized domains** must contain the deployment domain (localhost is allowed by default in development).
 - `AuthService` owns every auth call; components never call the Firebase SDK directly.
-- `authGuard` protects the shell route, so `/dashboard` and `/profile` redirect to `/login?returnUrl=...` when there is no session.
+- `authGuard` protects the shell route, so `/anasayfa` and `/profile` redirect to `/login?returnUrl=...` when there is no session.
 - Error codes from Firebase are translated to Turkish in `src/app/core/auth-errors.ts`; add new codes there instead of showing raw messages.
 
 ## Google Drive
 
-- Requires a signed-in Firebase user and `VITE_GOOGLE_CLIENT_ID` (Google Cloud OAuth Web client with `http://localhost:4200` and the deployment origin in **Authorized JavaScript origins**; **Google Drive API** enabled).
+- Requires a signed-in Firebase user and `VITE_GOOGLE_CLIENT_ID` (Google Cloud OAuth Web client with `http://localhost:4200` and the deployment origin in **Authorized JavaScript origins**; **Google Drive API** and **Google Sheets API** enabled).
 - Scope is `https://www.googleapis.com/auth/drive.file` plus `email`/`profile` — never the broad `drive` scope.
-- On connect the service fetches the Google account email, then finds or creates the `tahakkuk.web.app` folder in the user's Drive root and stores `{ uid, email, folderId, folderUrl, connectedAt }` in `sessionStorage` only.
+- On connect the service fetches the Google account email, then finds or creates the `tahakkuk.web.app` folder in the user's Drive root and stores `{ uid, email, folderId, folderUrl, connectedAt }` in `localStorage` while the Firebase session lives (page reload / new tab keep the link open); access tokens are never persisted (memory only). Sign-out removes the key.
+- Access tokens live in memory only, so a page reload drops the token while the link record stays. `GoogleDriveService.silentConnect()` re-acquires it silently with `prompt: 'none'` (15s timeout, no UI); the Dosya Modülü uses this to auto-load the "dosyalar" sheet when the module opens after a reload, and shows the connect button (`hasSessionToken`) again when the silent refresh fails. Sheet writes (`saveDocumentsToSheet`) may still fall back to the interactive consent prompt.
 - The GIS script is loaded from `src/index.html`; if it is not ready when the button is pressed, the service waits up to 20s, then removes the stale `<script>` tag and retries once more (two attempts total).
 - Any signed-in Google account may be linked, regardless of the Firebase account email (the Google window is opened without `login_hint`, so a new Google account can also be created there); the signed-in Google account's email is what is displayed and persisted.
 - All token/folder logic stays in `src/app/core/google-drive.service.ts`; the profile page only renders `status` / `info` / `error` and calls `connect()` / `disconnect()`.
+- Drive "dosyalar" sheet export (dosya modülü): `saveDocumentsToSheet({ header, rows })` finds the `dosyalar` Google Sheet inside the `tahakkuk.web.app` folder (creating folder/sheet only when missing) and appends rows through the Sheets API (`values:append`, `valueInputOption=RAW` so values are not re-parsed) — all inside `drive.file` scope, no extra scopes.
+- Drive "dosyalar" sheet read-back (dosya modülü): `loadSheetRows(header)` reads the whole sheet through the Sheets API (`values:get`) with the open-ended range `A:ZZ` — `A1` alone resolves to cell A1, not the sheet — and drops the leading header row when it matches the given header. The dated rows written before the `RAW` switch are normalized to `YYYY-AA-GG` in `fromSheetRow()`.
+- On sign-out, `AuthService.logout()` removes every app-owned browser key (`tahakkuk.` prefix in `sessionStorage`/`localStorage`) and the drive service resets its `status`/`info` signals when the auth user becomes `null` (sign-out, session expiry, or another tab).
 
 ## Testing instructions
 
@@ -192,7 +204,7 @@ These rules exist to keep the context window small while still delivering verifi
 - Assertions should target rendered output, not private component internals.
 - Components that inject `AuthService` must be tested with a stub provider (`{ user: signal(null) }`), not the real Firebase service.
 - Route-level access rules belong in `src/app/app.routes.spec.ts` using `RouterTestingHarness`.
-- Components that inject `GoogleDriveService` must be tested with a stub provider (`{ status: signal('disconnected'), busy: signal(false), error: signal(''), info: signal(null), isLinked: signal(false), connect: vi.fn(), disconnect: vi.fn() }`), not the real GIS flow.
+- Components that inject `GoogleDriveService` must be tested with a stub provider (`{ status: signal('disconnected'), busy: signal(false), error: signal(''), info: signal(null), isLinked: signal(false), hasSessionToken: signal(false), connect: vi.fn(), disconnect: vi.fn(), loadSheetRows: vi.fn(), saveDocumentsToSheet: vi.fn() }`), not the real GIS flow.
 
 ## Security considerations
 

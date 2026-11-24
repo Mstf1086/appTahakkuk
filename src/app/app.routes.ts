@@ -11,18 +11,25 @@ export const routes: Routes = [
     path: '',
     loadComponent: () => import('./layout/shell.component').then((m) => m.ShellComponent),
     children: [
-      { path: '', pathMatch: 'full', redirectTo: 'dashboard' },
+      { path: '', pathMatch: 'full', redirectTo: 'anasayfa' },
       {
-        path: 'dashboard',
-        loadComponent: () =>
-          import('./features/dashboard/dashboard.component').then((m) => m.DashboardComponent),
-        title: 'Dashboard | Tahakkuk',
+        path: 'anasayfa',
+        loadComponent: () => import('./features/home/home.component').then((m) => m.HomeComponent),
+        title: 'Anasayfa | Tahakkuk',
       },
       {
-        path: 'modules/stamp-tax',
+        path: 'modules/damga-vergisi-modulu',
         loadComponent: () =>
           import('./features/modules/stamp-tax/stamp-tax.component').then((m) => m.StampTaxComponent),
         title: 'Damga Vergisi Hesaplama | Tahakkuk',
+      },
+      {
+        path: 'modules/dosya',
+        loadComponent: () =>
+          import('./features/modules/documents/documents.component').then(
+            (m) => m.DocumentsComponent,
+          ),
+        title: 'Dosya Modülü | Tahakkuk',
       },
       {
         path: 'profile',
@@ -30,6 +37,18 @@ export const routes: Routes = [
         loadComponent: () =>
           import('./features/profile/profile.component').then((m) => m.ProfileComponent),
         title: 'Profil | Tahakkuk',
+      },
+      {
+        path: 'policy',
+        loadComponent: () =>
+          import('./features/legal/policy.component').then((m) => m.PolicyComponent),
+        title: 'Gizlilik Politikası | Tahakkuk',
+      },
+      {
+        path: 'terms',
+        loadComponent: () =>
+          import('./features/legal/terms.component').then((m) => m.TermsComponent),
+        title: 'Kullanım Koşulları | Tahakkuk',
       },
     ],
   },

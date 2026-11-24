@@ -3,6 +3,7 @@ import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { ActivatedRoute, Router } from '@angular/router';
 import { AuthMode, AuthService } from '../../core/auth.service';
 import { toAuthErrorMessage } from '../../core/auth-errors';
+import { ErrorLogger } from '../../core/error-logger';
 import { SeoService } from '../../core/seo.service';
 
 @Component({
@@ -18,12 +19,14 @@ export class LoginComponent {
   private readonly router = inject(Router);
   private readonly route = inject(ActivatedRoute);
   private readonly seoService = inject(SeoService);
+  private readonly logger = inject(ErrorLogger);
 
   readonly mode = signal<AuthMode>('login');
   readonly loading = signal(false);
   readonly googleLoading = signal(false);
   readonly errorMessage = signal('');
   readonly isConfigured = this.authService.isConfigured;
+  readonly idleNotice = this.route.snapshot.queryParamMap.get('reason') === 'idle';
 
   constructor() {
     this.seoService.setPage({
@@ -69,6 +72,7 @@ export class LoginComponent {
       }
       await this.router.navigateByUrl(this.returnUrl());
     } catch (error) {
+      this.logger.error('Giriş/kayıt işlemi başarısız', error);
       this.errorMessage.set(toAuthErrorMessage(error));
     } finally {
       this.loading.set(false);
@@ -77,7 +81,7 @@ export class LoginComponent {
 
   private returnUrl(): string {
     const target = this.route.snapshot.queryParamMap.get('returnUrl');
-    return target && target.startsWith('/') ? target : '/dashboard';
+    return target && target.startsWith('/') ? target : '/anasayfa';
   }
 
   async loginWithGoogle(): Promise<void> {
@@ -92,6 +96,7 @@ export class LoginComponent {
       await this.authService.loginWithGoogle();
       await this.router.navigateByUrl(this.returnUrl());
     } catch (error) {
+      this.logger.error('Google ile giriş başarısız', error);
       this.errorMessage.set(toAuthErrorMessage(error));
     } finally {
       this.googleLoading.set(false);

@@ -2,7 +2,7 @@
   <header class="page-header">
     <div>
       @if (user()) {
-        <a class="back-link" routerLink="/dashboard">← Dashboard'a dön</a>
+        <a class="back-link" routerLink="/anasayfa">← Anasayfa'ya dön</a>
       } @else {
         <a class="back-link" routerLink="/login">← Giriş sayfasına dön</a>
       }
@@ -14,7 +14,7 @@
     @if (!user()) {
       <p class="guest-note">
         Bu modülü hesap oluşturmadan kullanabilirsiniz. Tahakkuk panosuna erişmek için
-        <a routerLink="/login" [queryParams]="{ returnUrl: '/modules/stamp-tax' }">giriş yapın</a>.
+        <a routerLink="/login" [queryParams]="{ returnUrl: '/modules/damga-vergisi-modulu' }">giriş yapın</a>.
       </p>
     }
   </header>

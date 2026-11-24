@@ -19,7 +19,7 @@ describe('authGuard', () => {
 
   it('kimlik doğrulanmamış kullanıcıyı login sayfasına yönlendirir', async () => {
     const result = await TestBed.runInInjectionContext(() =>
-      authGuard({} as ActivatedRouteSnapshot, { url: '/dashboard' } as RouterStateSnapshot),
+      authGuard({} as ActivatedRouteSnapshot, { url: '/anasayfa' } as RouterStateSnapshot),
     );
 
     expect(result instanceof UrlTree).toBe(true);
@@ -30,7 +30,7 @@ describe('authGuard', () => {
     stub.waitForAuthState.mockResolvedValue({ uid: 'user-1' } as never);
 
     const result = await TestBed.runInInjectionContext(() =>
-      authGuard({} as ActivatedRouteSnapshot, { url: '/dashboard' } as RouterStateSnapshot),
+      authGuard({} as ActivatedRouteSnapshot, { url: '/anasayfa' } as RouterStateSnapshot),
     );
 
     expect(result).toBe(true);

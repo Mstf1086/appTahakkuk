@@ -1,0 +1,250 @@
+<section class="page">
+  <header class="page-header">
+    <div>
+      @if (user()) {
+        <a class="back-link" routerLink="/anasayfa">← Anasayfa'ya dön</a>
+      } @else {
+        <a class="back-link" routerLink="/login">← Giriş sayfasına dön</a>
+      }
+      <h1>Dosya Modülü</h1>
+      <p class="subtitle">
+        İş kayıtlarını oluşturun, düzenleyin ve silin; kayıtları Google Drive içindeki "dosyalar"
+        tablosuna kaydedin.
+      </p>
+    </div>
+    @if (!user()) {
+      <p class="guest-note">
+        Kayıtları bu cihazda oluşturabilirsiniz. Drive'a kaydetmek için
+        <a routerLink="/login" [queryParams]="{ returnUrl: '/modules/dosya' }">giriş yapın</a>.
+      </p>
+    }
+  </header>
+
+  <div class="menu-bar">
+    <button type="button" class="action action--primary" (click)="openNewRecord()">Yeni kayıt</button>
+    <button
+      type="button"
+      class="action"
+      (click)="openSelectModal('edit')"
+      [disabled]="records().length === 0"
+    >
+      Düzenle
+    </button>
+    <button
+      type="button"
+      class="action"
+      (click)="openSelectModal('delete')"
+      [disabled]="records().length === 0"
+    >
+      Sil
+    </button>
+    <button
+      type="button"
+      class="action action--primary"
+      (click)="saveToDrive()"
+      [disabled]="drive.busy() || records().length === 0"
+    >
+      Drive'a Kaydet
+    </button>
+    <button type="button" class="action" (click)="loadFromDrive()" [disabled]="drive.busy()">
+      Drive'dan Yükle
+    </button>
+    @if (user() && (!drive.isLinked() || !drive.hasSessionToken())) {
+      <button type="button" class="action" (click)="connectDrive()" [disabled]="drive.busy()">
+        Google Drive'a bağlan
+      </button>
+    }
+  </div>
+
+  @if (drive.error()) {
+    <p class="form-error">{{ drive.error() }}</p>
+  }
+  @if (saveMessage()) {
+    <p class="form-success">{{ saveMessage() }}</p>
+  }
+  @if (saveError()) {
+    <p class="form-error">{{ saveError() }}</p>
+  }
+
+  @if (records().length === 0) {
+    <p class="empty-state">Henüz kayıt yok. "Yeni kayıt" ile başlayın.</p>
+  } @else {
+    <div class="table-wrap">
+      <table class="records">
+        <thead>
+          <tr>
+            <th scope="col">İşin adı</th>
+            <th scope="col">Türü</th>
+            <th scope="col">Usulü</th>
+            <th scope="col">Usul detayı</th>
+            <th scope="col">Alım tarihi</th>
+            <th scope="col">Durum</th>
+          </tr>
+        </thead>
+        <tbody>
+          @for (record of records(); track record.id) {
+            <tr>
+              <td>{{ record.isinAdi }}</td>
+              <td>{{ turuLabel(record.turu) }}</td>
+              <td>{{ usuluLabel(record.usulu) }}</td>
+              <td>{{ usulDetayiLabel(record) }}</td>
+              <td>{{ record.alimTarihi }}</td>
+              <td>
+                <span class="badge" [class.badge--done]="record.exportedAt">
+                  {{ record.exportedAt ? 'Kaydedildi' : 'Bekliyor' }}
+                </span>
+                @if (record.source === 'drive') {
+                  <span class="badge badge--drive">Drive</span>
+                }
+              </td>
+            </tr>
+          }
+        </tbody>
+      </table>
+    </div>
+    <p class="table-note">
+      {{ pendingCount() }} kayıt Drive'a kaydedilmeyi bekliyor.
+    </p>
+  }
+</section>
+
+@if (modal() !== 'closed') {
+  <div class="modal-backdrop" (click)="closeModal()">
+    <div
+      class="modal"
+      role="dialog"
+      aria-modal="true"
+      [attr.aria-label]="modalTitle()"
+      (click)="$event.stopPropagation()"
+    >
+      <header class="modal-header">
+        <h2>{{ modalTitle() }}</h2>
+        <button type="button" class="modal-close" (click)="closeModal()" aria-label="Kapat">
+          &times;
+        </button>
+      </header>
+
+      @if (modal() === 'select') {
+        <div class="modal-body">
+          <p class="modal-hint">Listeden bir kayıt seçin.</p>
+          <ul class="record-select">
+            @for (record of records(); track record.id) {
+              <li>
+                <label class="record-option">
+                  <input
+                    type="radio"
+                    name="recordSelect"
+                    [value]="record.id"
+                    [checked]="selectedId() === record.id"
+                    (change)="selectedId.set(record.id)"
+                  />
+                  <span class="record-option-main">{{ record.isinAdi }}</span>
+                  <span class="record-option-meta">
+                    {{ turuLabel(record.turu) }} · {{ usuluLabel(record.usulu) }} ·
+                    {{ record.alimTarihi }}
+                  </span>
+                </label>
+              </li>
+            }
+          </ul>
+        </div>
+        <footer class="modal-footer">
+          <button type="button" class="action" (click)="closeModal()">İptal</button>
+          <button
+            type="button"
+            class="action action--primary"
+            (click)="confirmSelect()"
+            [disabled]="!selectedId()"
+          >
+            {{ modalAction() === 'delete' ? 'Seçili kaydı sil' : 'Seçili kaydı düzenle' }}
+          </button>
+        </footer>
+      }
+
+      @if (modal() === 'form') {
+        <form class="modal-body" [formGroup]="form" novalidate>
+          <label for="isinAdi">İşin adı</label>
+          <input id="isinAdi" type="text" formControlName="isinAdi" autocomplete="off" />
+          @if (formErrors()['isinAdi']) {
+            <p class="field-error">{{ formErrors()['isinAdi'] }}</p>
+          }
+
+          <div class="form-row">
+            <div>
+              <label for="turu">Türü</label>
+              <select id="turu" formControlName="turu">
+                <option value="" disabled selected>Seçin</option>
+                @for (option of turuOptions; track option.value) {
+                  <option [value]="option.value">{{ option.label }}</option>
+                }
+              </select>
+              @if (formErrors()['turu']) {
+                <p class="field-error">{{ formErrors()['turu'] }}</p>
+              }
+            </div>
+            <div>
+              <label for="alimTarihi">Alım tarihi</label>
+              <input id="alimTarihi" type="date" formControlName="alimTarihi" />
+              @if (formErrors()['alimTarihi']) {
+                <p class="field-error">{{ formErrors()['alimTarihi'] }}</p>
+              }
+            </div>
+          </div>
+
+          <label for="usulu">Usulü</label>
+          <select
+            id="usulu"
+            formControlName="usulu"
+            (change)="onUsuluChange($any($event.target).value)"
+          >
+            <option value="" disabled selected>Seçin</option>
+            @for (option of usuluOptions; track option.value) {
+              <option [value]="option.value">{{ option.label }}</option>
+            }
+          </select>
+          @if (formErrors()['usulu']) {
+            <p class="field-error">{{ formErrors()['usulu'] }}</p>
+          }
+
+          @if (form.controls.usulu.value === 'ihale') {
+            <label for="ihaleUsulu">İhale usulü</label>
+            <select id="ihaleUsulu" formControlName="ihaleUsulu">
+              <option value="" disabled selected>Seçin</option>
+              @for (option of ihaleUsuluOptions; track option.value) {
+                <option [value]="option.value">{{ option.label }}</option>
+              }
+            </select>
+            @if (formErrors()['ihaleUsulu']) {
+              <p class="field-error">{{ formErrors()['ihaleUsulu'] }}</p>
+            }
+          }
+
+          @if (form.controls.usulu.value === 'dogrudanTemin') {
+            <label for="dogrudanTeminUsulu">Doğrudan temin usulü</label>
+            <select id="dogrudanTeminUsulu" formControlName="dogrudanTeminUsulu">
+              <option value="" disabled selected>Seçin</option>
+              @for (option of dogrudanTeminUsuluOptions; track option.value) {
+                <option [value]="option.value">{{ option.label }}</option>
+              }
+            </select>
+            @if (formErrors()['dogrudanTeminUsulu']) {
+              <p class="field-error">{{ formErrors()['dogrudanTeminUsulu'] }}</p>
+            }
+          }
+
+          <label for="aciklama">Açıklama (isteğe bağlı)</label>
+          <textarea id="aciklama" rows="3" formControlName="aciklama"></textarea>
+          @if (formErrors()['aciklama']) {
+            <p class="field-error">{{ formErrors()['aciklama'] }}</p>
+          }
+        </form>
+        <footer class="modal-footer">
+          <button type="button" class="action" (click)="closeModal()">İptal</button>
+          <button type="button" class="action action--primary" (click)="submitForm()">
+            Kaydet
+          </button>
+        </footer>
+      }
+    </div>
+  </div>
+}

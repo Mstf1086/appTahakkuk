@@ -11,12 +11,14 @@ import {
   updateProfile,
 } from 'firebase/auth';
 import { auth } from './firebase';
+import { ErrorLogger } from './error-logger';
 
 export type AuthMode = 'login' | 'register';
 
 @Injectable({ providedIn: 'root' })
 export class AuthService {
   private readonly router = inject(Router);
+  private readonly logger = inject(ErrorLogger);
   private readonly currentUser = signal<User | null>(null);
   private readonly stateReady = signal(false);
   private resolveState: ((user: User | null) => void) | null = null;
@@ -73,7 +75,28 @@ export class AuthService {
   async logout(): Promise<void> {
     const client = this.requireAuth();
     await signOut(client);
+    this.clearAppBrowserData();
     await this.router.navigate(['/login']);
+  }
+
+  private clearAppBrowserData(): void {
+    for (const store of [sessionStorage, localStorage]) {
+      try {
+        const keys: string[] = [];
+        for (let index = 0; index < store.length; index += 1) {
+          const key = store.key(index);
+          if (key?.startsWith('tahakkuk.')) {
+            keys.push(key);
+          }
+        }
+        for (const key of keys) {
+          store.removeItem(key);
+        }
+      } catch (error) {
+        // Gizli sekme veya depolama erişimi kapali olabilir.
+        this.logger.warn('Çıkışta tarayıcı deposu temizlenemedi', error);
+      }
+    }
   }
 
   async updateDisplayName(displayName: string): Promise<void> {

@@ -1,0 +1,64 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://tahakkuk.web.app/schemas/dosya-kaydi.schema.json",
+  "title": "Dosya Kaydı",
+  "description": "Tahakkuk dosya modülünde tutulan iş/kayıt şeması",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["isinAdi", "turu", "usulu", "alimTarihi"],
+  "properties": {
+    "isinAdi": {
+      "type": "string",
+      "minLength": 2,
+      "maxLength": 200,
+      "title": "İşin adı"
+    },
+    "turu": {
+      "type": "string",
+      "enum": ["mal", "hizmet", "yapim"],
+      "title": "Türü"
+    },
+    "usulu": {
+      "type": "string",
+      "enum": ["ihale", "dogrudanTemin", "diger"],
+      "title": "Usulü"
+    },
+    "ihaleUsulu": {
+      "type": "string",
+      "enum": ["acikIhale", "pazarlik21A", "pazarlik21B", "pazarlik21D"],
+      "title": "İhale usulü"
+    },
+    "dogrudanTeminUsulu": {
+      "type": "string",
+      "enum": ["dogrudanTemin22A", "dogrudanTemin22B", "dogrudanTemin22C"],
+      "title": "Doğrudan temin usulü"
+    },
+    "alimTarihi": {
+      "type": "string",
+      "format": "date",
+      "pattern": "^\\d{4}-\\d{2}-\\d{2}$",
+      "title": "Alım tarihi"
+    },
+    "aciklama": {
+      "type": "string",
+      "maxLength": 500,
+      "title": "Açıklama"
+    }
+  },
+  "allOf": [
+    {
+      "if": {
+        "required": ["usulu"],
+        "properties": { "usulu": { "const": "ihale" } }
+      },
+      "then": { "required": ["ihaleUsulu"] }
+    },
+    {
+      "if": {
+        "required": ["usulu"],
+        "properties": { "usulu": { "const": "dogrudanTemin" } }
+      },
+      "then": { "required": ["dogrudanTeminUsulu"] }
+    }
+  ]
+}

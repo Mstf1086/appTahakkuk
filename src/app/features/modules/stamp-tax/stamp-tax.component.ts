@@ -30,7 +30,7 @@ export class StampTaxComponent {
         'KDV hariç fatura bedeli üzerinden 9,48/1000 oranında damga vergisi kesintisi hesaplayın; KDV dahil fatura bedeli, tevkifat kesintisi ve ödenecek tutarı anında görün.',
       keywords:
         'damga vergisi hesaplama, damga vergisi kesintisi, KDV hariç fatura bedeli, tevkifat kesintisi, ödenecek tutar',
-      path: '/modules/stamp-tax',
+      path: '/modules/damga-vergisi-modulu',
     });
   }
 

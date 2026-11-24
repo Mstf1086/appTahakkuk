@@ -21,12 +21,12 @@ describe('ShellComponent', () => {
     }).compileComponents();
   });
 
-  it('dashboard, profil ve çıkış menülerini gösterir', () => {
+  it('anasayfa, profil ve çıkış menülerini gösterir', () => {
     const fixture = TestBed.createComponent(ShellComponent);
     fixture.detectChanges();
 
     const element = fixture.nativeElement as HTMLElement;
-    expect(element.textContent).toContain('Dashboard');
+    expect(element.textContent).toContain('Anasayfa');
     expect(element.textContent).toContain('Profil');
     expect(element.textContent).toContain('Çıkış');
   });

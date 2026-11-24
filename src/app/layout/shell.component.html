@@ -10,10 +10,10 @@
       <span class="menu-icon" aria-hidden="true"></span>
     </button>
 
-    <a class="brand" routerLink="/dashboard" (click)="closeMenu()">Tahakkuk</a>
+    <a class="brand" routerLink="/anasayfa" (click)="closeMenu()">Tahakkuk</a>
 
     <nav class="desktop-nav" aria-label="Ana menü">
-      <a routerLink="/dashboard" routerLinkActive="active">Dashboard</a>
+      <a routerLink="/anasayfa" routerLinkActive="active">Anasayfa</a>
       @if (user()) {
         <a routerLink="/profile" routerLinkActive="active">Profil</a>
       }
@@ -45,7 +45,7 @@
     </div>
 
     <nav class="sidebar-nav" aria-label="Mobil menü">
-      <a routerLink="/dashboard" routerLinkActive="active" (click)="closeMenu()">Dashboard</a>
+      <a routerLink="/anasayfa" routerLinkActive="active" (click)="closeMenu()">Anasayfa</a>
       @if (user()) {
         <a routerLink="/profile" routerLinkActive="active" (click)="closeMenu()">Profil</a>
       }

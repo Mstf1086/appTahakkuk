@@ -1,0 +1,39 @@
+<section class="page">
+  <section class="modules">
+    <div class="module-group">
+      <div class="modules-header">
+        <h2>Ana Modüller</h2>
+        <p class="modules-hint">Tahakkuk işlemlerinizi ana modüller üzerinden yürütün.</p>
+      </div>
+
+      <div class="module-grid">
+        @for (module of mainModules; track module.title) {
+          <a class="module-card" [routerLink]="module.path">
+            <span class="module-code" aria-hidden="true">{{ module.code }}</span>
+            <span class="module-title">{{ module.title }}</span>
+            <span class="module-description">{{ module.description }}</span>
+            <span class="module-action">Modülü aç</span>
+          </a>
+        }
+      </div>
+    </div>
+
+    <div class="module-group">
+      <div class="modules-header">
+        <h2>Yardımcı Modüller</h2>
+        <p class="modules-hint">Hesaplama ve destekleyici araçlar.</p>
+      </div>
+
+      <div class="module-grid">
+        @for (module of helperModules; track module.title) {
+          <a class="module-card" [routerLink]="module.path">
+            <span class="module-code" aria-hidden="true">{{ module.code }}</span>
+            <span class="module-title">{{ module.title }}</span>
+            <span class="module-description">{{ module.description }}</span>
+            <span class="module-action">Modülü aç</span>
+          </a>
+        }
+      </div>
+    </div>
+  </section>
+</section>

@@ -7,6 +7,161 @@ sürümler [Semantic Versioning](https://semver.org/lang/tr/) kurallarına uyar.
 son bileşeni bir artırılır (`0.0.1` → `0.0.2`); `0.0` (major.minor) kısmı yalnızca proje sahibi
 istediğinde değiştirilir.
 
+## [0.0.22] - 2026-11-24
+
+### Eklenen
+
+- **Merkezi hata günlüğü** (`src/app/core/error-logger.ts`): tüm hatalar tek biçimde konsola
+  yazılır — `[Tahakkuk] [HATA]/[UYARI] <bağlam> | <zaman damgası> | <hata adı>: <mesaj>`; hata
+  nesnesi (yığın iziyle) ve varsa Firebase hata kodu/ek ayrıntılar ayrı argüman olarak kaydedilir.
+- **Global hata dinleyicileri** (`src/app/core/global-error-listeners.ts`): `window.onerror`
+  (çalışma zamanı hataları ve yüklenemeyen kaynaklar) ile `unhandledrejection` (yakalanmamış
+  Promise reddi) dinleyicileri `main.ts` içinde bootstrap öncesinde kurulur; böylece Angular'ın
+  hata denetimine girmeyen hatalar da kaydedilir.
+- **Yönlendirme hatası kaydı**: `app.config.ts` → `withNavigationErrorHandler(...)` ile sayfa
+  yönlendirme hataları da konsola yazılır.
+- **Hata denetimi testleri**: `error-logger.spec.ts`, `error-handler.spec.ts` ve
+  `global-error-listeners.spec.ts` (9 test).
+
+### Değiştirilen
+
+- **Tüm hata yakalama blokları tek noktadan yazıyor**: Giriş/kayıt, Google giriş, profil
+  güncelleme, Drive bağlantısı, sessiz token yenileme, GIS script yükleme, Drive'dan yükleme,
+  Drive'a kaydetme, tarayıcı deposu ve kayıt saklama bloklarındaki doğrudan `console.*` çağrıları
+  `ErrorLogger` servisine taşındı. Daha önce sessizce yutulan hatalar (kayıt okuma, bozuk
+  bağlantı bilgisi, depolama erişimi, okunamayan Drive yanıt gövdesi) de kaydediliyor.
+- **Global hata yakalayıcı** (`src/app/core/error-handler.ts`) artık `ErrorHandler` provider'ı
+  olarak bağlıdır ve yakalanmamış hataları merkezi günlüğe yazar.
+
+## [0.0.21] - 2026-11-24
+
+### Düzeltilen
+
+- **Dosya Modülü otomatik yükleme**: Dosya Modülü açıldığında Drive'daki "dosyalar" tablosuna
+  kaydedilen kayıtlar listelenmiyordu. Otomatik yükleme, bellekteki erişim token'ına
+  (`hasSessionToken`) koşullu olduğu için sayfa yenilemesinden sonra (token bellek içinde
+  tutulduğu için kayboluyordu) hiç çalışmıyordu. Artık modül açılışında Drive bağlantı kaydı
+  geri yüklendiğinde (restore) satırlar otomatik okunur.
+- **Sessiz token yenileme**: `GoogleDriveService` sayfa yenilemesi sonrası token olmadan da
+  daha önce verilen izinle sessizce yeni token alıyor (`prompt: 'none`, 15 sn zaman aşımı);
+  "dosyalar" tablosu okuma bu sessiz token ile yapılıyor. Sessiz yenileme olmazsa kullanıcıya
+  Türkçe bir hata gösteriliyor ve `Google Drive'a bağlan` düğmesi (oturumu tazelemek için)
+  görünür kalıyor.
+- **Bağlantı kurulan akış**: `Drive'dan Yükle` düğmesi bağlantı kurduğunda satırlar tekrar
+  okunuyor (çift yüklenme engellendi).
+
+## [0.0.20] - 2026-11-13
+
+### Düzeltilen
+
+- **Drive'dan yükleme**: Dosya Modülü'ne `Drive'dan Yükle` (veya bağlantı sonrası otomatik
+  yükleme) tablo verilerini okurken `values/A1` aralığı istiyordu. A1 notasyonunda bu yalnızca
+  A1 hücresini (başlık hücresini) döndürdüğü için kayıtlar listelenmiyordu; okuma
+  `values/A1` yerine açık uçlu `values/A:ZZ` aralığına çevrildi ve başlık satırı çağıran
+  tarafa bildirilen başlık listesiyle karşılaştırılarak atlanıyor.
+- **Drive'a kaydetme**: satır ekleme isteğindeki `valueInputOption=USER_ENTERED` yerine
+  `RAW` kullanılıyor. Böylece alım tarihi gibi değerler Sheets'te ayrıştırılıp yerel biçime
+  (örn. `1/15/2026`) dönüşmüyor; yazılan biçim birebir korunarak geri okunuyor.
+- **Tarih biçimi**: `RAW`'a geçmeden önce yazılmış eski satırların tarihleri okunurken
+  tablonun yerel biçiminden (`15.01.2026`, `1/15/2026`) `YYYY-AA-GG` biçimine çevriliyor.
+  Gün/ay sırası belirsiz olan değerler (örn. `05/06/2026`) olduğu gibi bırakılır.
+
+## [0.0.19] - 2026-11-12
+
+### Değiştirilen
+
+- **Anasayfa**: `dashboard` → `anasayfa` oldu. `/` yönlendirmesi, menü bağlantıları, modül
+  geri dönüş linkleri ve giriş sonrası varsayılan hedef `anasayfa` olacak şekilde
+  güncellendi; sayfa başlığı ve SEO bilgisi "Anasayfa | Tahakkuk".
+- **Modül kategorileri**: anasayfada artık iki ayrı kart var — **Ana Modüller** (Dosya Modülü)
+  ve **Yardımcı Modüller** (Damga Vergisi Hesaplama). Dosya modülü ana modül, damga vergisi
+  hesaplama yardımcı modül olarak gruplandırıldı.
+
+## [0.0.18] - 2026-11-12
+
+### Eklenen
+
+- **30 dakikalık oturum zaman aşımı**: `IdleTimeoutService` — kullanıcı giriş yaptığında
+  fare/klavye/dokunma etkileşimlerini izler, 30 dakika işlem yapılmazsa oturumu kapatır ve
+  `/login?reason=idle` adresine yönlendirir; giriş ekranında bunu açıklayan bir not görünür.
+
+### Değiştirilen
+
+- **Google Drive bağlantısı oturum boyunca açık kalıyor**: bağlantı bilgisi (hesap e-postası,
+  klasör kimliği/tarihi — token değil) artık `localStorage` üzerinde tutuluyor; sayfa
+  yenilemede ve yeni sekmede bağlantı korunur. Çıkışta (elle veya otomatik) `tahakkuk.*`
+  anahtarları silindiği için bağlantı kapanır. Erişim token'ı yalnızca bellekte tutulur.
+
+### Düzeltilen
+
+- **Drive "dosyalar" tablosuna yazma hatası**: Sheets API'nin projede kapalı olmasından kaynaklı
+  403 (`has not been used ... or it is disabled`) artık ayrı hata kodu ve çözüm adımlı Türkçe
+  mesaj üretiyor; Hizmet Sheets API projede etkinleştirildi.
+
+## [0.0.17] - 2026-11-12
+
+### Eklenen
+
+- **Dosya Modülü (`/modules/dosya`)**: iş kayıtları listesi, basit menü (`Yeni kayıt`,
+  `Düzenle`, `Sil`, `Drive'a Kaydet`) ve popup akışları (düzenle/sil için kayıt seçim penceresi).
+- **JSON doğrulama şeması**: `src/app/features/modules/documents/document.schema.json`
+  (işin adı, türü, usulü, ihale/doğrudan temin usul detayları, alım tarihi, açıklama); form
+  doğrulaması bu şemadan türetilen kurallarla yapılır ve hatalar Türkçe gösterilir.
+- **Drive'a Kaydet**: `tahakkuk.web.app` klasörü içindeki **dosyalar** tablosuna (Google Sheets)
+  kayıtlar eklenir; tablo yoksa oluşturulur ve başlık satırı yazılır, varsa satırlar eklenir.
+  Kaydedilen kayıtlar listede "Kaydedildi" olarak işaretlenir.
+
+### Değiştirilen
+
+- **Damga vergisi modülü URL'si** `/modules/stamp-tax` → `/modules/damga-vergisi-modulu`
+  olarak değiştirildi (rota, dashboard kartı, canonical/SEO adresi ve giriş yönlendirmesi
+  güncellendi).
+
+### Düzeltilen
+
+- Drive klasörü/liste sorgusu hata verirse (oturum düşmesi, ağ hatası) artık körü körüne yeni
+  klasör/sheet oluşturulmuyor; `FOLDER_LOOKUP_ERROR` ile işlem güvenli şekilde durduruluyor.
+- `GoogleDriveService` erişim token'ını yalnızca bellekte saklıyor; çıkışta temizleniyor.
+
+## [0.0.16] - 2026-11-12
+
+### Düzeltilen
+
+- **Çıkışta tarayıcı verileri temizleniyor**: `AuthService.logout()` artık Firebase çıkışının
+  ardından uygulamaya ait tarayıcı kayıtlarını (`tahakkuk.` ile başlayan
+  `sessionStorage`/`localStorage` anahtarları — Drive bağlantı bilgisi dahil) siliyor.
+  `GoogleDriveService` ayrıca oturum kapandığında (çıkış veya oturum düşmesi) bağlantı durumu
+  sinyallerini de sıfırlıyor; yeni kullanıcı aynı sekmede giriş yaptığında eski Drive bağlantısı
+  görünmüyor.
+
+## [0.0.15] - 2026-11-12
+
+### Eklenen
+
+- **Gizlilik Politikası (`/policy`) ve Kullanım Koşulları (`/terms`) sayfaları**: misafirler dahil
+  herkese açık, shell şablonu içinde açılan iki hukuki sayfa; her ikisi de Türkçe başlığa ve
+  `SeoService.setPage()` çağrısına sahip. OAuth consent screen doğrulamasında istenen herkese
+  açık adresler artık `https://tahakkuk.web.app/policy` ve `https://tahakkuk.web.app/terms`
+  olarak uygulama içinde yayınlanıyor.
+
+## [Güncellenmemiş]
+
+### Değiştirilen
+
+- **README** → Google Drive bölümünde OAuth consent screen "Testing" durumunun etkisi
+  netleştirildi: listede olmayan hesaplar "Error 403: access_denied" ile reddedilir; Test
+  users ekleme ve Production yayınlama adımları ile hata mesajı belgelendi.
+
+## [0.0.14] - 2026-11-12
+
+### Düzeltilen
+
+- **Google Drive bağlantısı "GIS scripti yüklenemedi" hatasını kaldırdı**: servis GIS API'sını
+  yanlış yoldan (`window.google.oauth2`) arıyordu; `accounts.google.com/gsi/client` scripti API'yi
+  `window.google.accounts.oauth2` olarak yayınladığı için script doğru şekilde yüklenmesine rağmen
+  her seferinde 20 sn zaman aşımına uğranıyordu (toplam 2 deneme). Kontrol ve token istemcisi
+  oluşturma artık `window.google.accounts.oauth2` üzerinden yapılıyor.
+
 ## [0.0.13] - 2026-11-12
 
 ### Eklenen

@@ -1,5 +1,6 @@
-import { ChangeDetectionStrategy, Component } from '@angular/core';
+import { ChangeDetectionStrategy, Component, inject } from '@angular/core';
 import { RouterOutlet } from '@angular/router';
+import { IdleTimeoutService } from './core/idle-timeout.service';
 
 @Component({
   selector: 'app-root',
@@ -8,4 +9,6 @@ import { RouterOutlet } from '@angular/router';
   changeDetection: ChangeDetectionStrategy.OnPush,
   styleUrl: './app.component.css',
 })
-export class AppComponent {}
+export class AppComponent {
+  private readonly idleTimeout = inject(IdleTimeoutService);
+}

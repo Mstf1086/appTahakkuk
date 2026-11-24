@@ -23,15 +23,25 @@ Hesaplama** modülü ise misafirler tarafından da giriş yapılmadan kullanıla
 - **Firebase Authentication**: e-posta/şifre ile giriş, **Google ile giriş**, hesap oluşturma ve çıkış.
 - **Korumalı alan**: `/profile` rotası `authGuard` ile korunur ve menülerde yalnızca giriş yapmış
   kullanıcılara gösterilir; oturum yoksa `/login?returnUrl=...` adresine yönlendirilir.
-- **Misafir erişimi**: `/` (varsayılan sayfa) ve `/dashboard` misafirlere açıktır; dashboard’da
-  modül kartları görünür, giriş bağlantısı üst menüde bulunur. `/modules/stamp-tax` de herkese
-  açıktır; modül, shell içinde açıldığı için üst menü ve footer misafirler için de görünür.
+- **Misafir erişimi**: `/` (varsayılan sayfa) ve `/anasayfa` misafirlere açıktır; anasayfada
+  modül kartları görünür, giriş bağlantısı üst menüde bulunur. `/modules/damga-vergisi-modulu`
+  ve `/modules/dosya` de herkese açıktır; modüller shell içinde açıldığı için üst menü ve footer
+  misafirler için de görünür.
+- **Modül kategorileri**: anasayfada **Ana Modüller** (Dosya Modülü) ve **Yardımcı Modüller**
+  (Damga Vergisi Hesaplama) ayrı kartlarda listelenir.
 - **Damga Vergisi Hesaplama modülü**: KDV hariç fatura bedelinden damga vergisi kesintisi,
   KDV dahil fatura bedeli, tevkifat kesintisi ve ödenecek tutar hesaplanır. Modül yalnızca
-  dashboard’daki kart üzerinden açılır; menülerde ve giriş ekranında listelenmez.
+  anasayfadaki yardımcı modül kartı üzerinden açılır; menülerde ve giriş ekranında listelenmez.
 - **Google Drive bağlantısı**: giriş yapmış kullanıcı Google hesabıyla yetki verir; Drive'ında
-  `tahakkuk.web.app` klasörü otomatik oluşturulur. Durum ve bağlı hesap bilgileri profil
-  sayfasındaki "Bağlı hesaplar" panelinde görünür.
+  `tahakkuk.web.app` klasörü otomatik oluşturulur. Bağlantı bilgisi (token hariç) oturumunuz
+  açık olduğu sürece tarayıcınızda tutulur; sayfa yenilendiğinde veya yeni sekme açtığınızda
+  bağlantı korunur, çıkışta silinir. Durum ve bağlı hesap bilgileri profil sayfasındaki
+  "Bağlı hesaplar" panelinde görünür.
+- **Oturum güvenliği**: 30 dakika boyunca işlem yapılmazsa oturum güvenliğiniz için otomatik
+  kapatılır; fare/klavye/dokunma etkileşimi süreyi baştan başlatır.
+- **Hukuki sayfalar**: `/policy` (gizlilik politikası) ve `/terms` (kullanım koşulları) misafirler
+  dahil herkese açıktır; OAuth consent screen doğrulamasında istenen herkese açık adresler
+  uygulama içinde yayınlanır.
 - **Responsive shell**: 900px üzerinde üst menü, altında açılır panel (hamburger).
 - **Footer ve sürüm**: footer pencerenin en altında durur, içerik uzadıkça aşağı itilir; yalnızca
   uygulama adı, telif ve güncel sürüm (`package.json`) görünür; footer'da gezinme bağlantısı yoktur.
@@ -45,7 +55,7 @@ Hesaplama** modülü ise misafirler tarafından da giriş yapılmadan kullanıla
 | Framework | Angular 22.2.5 (standalone, signals, `@angular/build`) |
 | Test | Vitest 5 + jsdom (`@angular/build:unit-test`) |
 | Backend SDK | Firebase 13 (Auth, Firestore, Storage) |
-| Node | 24.22.2 LTS (`.nvmrc`) |
+| Node | 24.22.3 LTS (`.nvmrc`) |
 | Paket yöneticisi | npm 11 |
 
 ## Kurulum
@@ -120,9 +130,14 @@ Profil sayfasındaki **Google Drive’a bağlan** düğmesi Google Identity Serv
 erişim token'ı alır ve Drive API v3 ile `tahakkuk.web.app` klasörünü oluşturur.
 
 1. [Google Cloud Console](https://console.cloud.google.com/) → yeni veya mevcut bir proje seçin.
-2. **APIs & Services → Library** → **Google Drive API** etkinleştirin.
-3. **APIs & Services → OAuth consent screen** → External (test kullanıcısı olarak kendi Google
-   hesabınızı **Test users** listesine ekleyin).
+2. **APIs & Services → Library** → **Google Drive API** ve **Google Sheets API**
+   etkinleştirin (Drive dosyası oluşturma ve tabloya satır ekleme için ikisi de gerekir).
+3. **APIs & Services → OAuth consent screen** → External. Publishing status **Testing**
+   (varsayılan) iken Drive'a bağlanmaya çalışan **her Google hesabının Test users
+   listesinde olması gerekir**; listede olmayan hesap "Error 403: access_denied" ile
+   reddedilir. Kendi hesabınızı (ve bağlanacak diğer hesapları) **Test users** listesine
+   ekleyin. Kalıcı çözüm için **Publish app** ile yayın durumunu Production yapın; ancak
+   `drive.file` "sensitive" kapsamı olduğu için Google doğrulama (verification) ister.
 4. **APIs & Services → Credentials → Create credentials → OAuth client ID → Web application**:
    - **Authorized JavaScript origins**: `http://localhost:4200` ve yayın alan adınız
      (ör. `https://tahakkuk.web.app`).
@@ -131,14 +146,28 @@ erişim token'ı alır ve Drive API v3 ile `tahakkuk.web.app` klasörünü oluş
 
 Kapsam (`scope`): `https://www.googleapis.com/auth/drive.file`, `email`, `profile`. `drive.file`
 kapsamı yalnızca uygulamanın oluşturduğu dosyalara erişir; kullanıcının mevcut Drive içeriği
-okunmaz. Bağlantı bilgisi (hesap e-postası, klasör kimliği, bağlantı tarihi) oturum bazında
-`sessionStorage` üzerinde tutulur; tarayıcı kapanınca silinir.
+okunmaz. Bağlantı bilgisi (hesap e-postası, klasör kimliği, bağlantı tarihi; token değil)
+kullanıcı çıkış yapana kadar `localStorage` üzerinde tutulur — sayfa yenilemede ve yeni
+sekmede bağlantı korunur. Çıkışta (elle veya 30 dakika işlem yapılmaması sonrası otomatik)
+uygulamaya ait tüm tarayıcı kayıtları (`tahakkuk.` anahtarları) ve Drive bağlantı durumu
+temizlenir; erişim token'ı hiçbir zaman saklanmaz.
+
+Consent screen doğrulamasında istenen bağlantılar uygulama içinde yayınlanır:
+`https://tahakkuk.web.app/policy` (gizlilik politikası) ve
+`https://tahakkuk.web.app/terms` (kullanım koşulları).
 
 Profil sayfasında bağlantı durumu, bağlı Google hesabı ve klasör bilgisi "Bağlı hesaplar"
 panelinde gösterilir.
 
 Google penceresinde hangi hesap seçilirse bağlantı o hesaba yapılır; Firebase e-postasıyla
 aynı olması gerekmez ve pencerede hesap oluşturmak da mümkündür.
+
+> Not: Google penceresinde **"Erişim engellendi: ... Google doğrulama sürecini tamamlamadı.
+> Uygulama şu anda test edilmektedir. Yalnızca geliştirici tarafından onaylanan test
+> kullanıcıları uygulamaya erişebilir. (Error 403: access_denied)"** görürseniz: OAuth consent
+> screen yayın durumu Testing'dir ve izin veren Google hesabı Test users listesinde değildir.
+> Cloud Console → APIs & Services → OAuth consent screen → **Test users** bölümüne ilgili
+> hesabı ekleyin (anında etkili, dağıtım gerekmez) veya uygulamayı Production olarak yayınlayın.
 
 > Not: `src/index.html` içindeki `accounts.google.com/gsi/client` scripti sayfa yüklenirken
 > çalışır. Butona basıldığında scriptin hazırlanmadığı görülürse uygulama, ölü scripti
@@ -155,12 +184,14 @@ npm run watch      # geliştirme derlemesi, watch modunda
 
 Uygulamada:
 
-- `/` ve `/dashboard` → misafirler için de açık.
+- `/` ve `/anasayfa` → misafirler için de açık anasayfa (ana ve yardımcı modül kartları).
 - `/login` → giriş (e-posta/şifre veya Google) ve hesap oluşturma ekranı.
-- `/modules/stamp-tax` → giriş gerektirmeyen damga vergisi hesaplama modülü (üst menü ve footer
-  görünür, menülerde listelenmez).
+- `/modules/damga-vergisi-modulu` → giriş gerektirmeyen damga vergisi hesaplama modülü (üst menü
+  ve footer görünür, menülerde listelenmez).
 - `/profile` → giriş yapmış kullanıcıların profil bilgileri (korumalı; menüde yalnızca giriş
   yapmışlara görünür).
+- `/policy` → gizlilik politikası (herkese açık; OAuth doğrulamasında kullanılan adres).
+- `/terms` → kullanım koşulları (herkese açık; OAuth doğrulamasında kullanılan adres).
 
 ## Sürümleme
 
@@ -199,6 +230,32 @@ npm run build                                # üretim derlemesi -> dist/tahakku
 
 Testler kaynak kodunun yanında `*.spec.ts` dosyalarında yaşar ve render edilen çıktıyı doğrular.
 
+## Hata denetimi
+
+Uygulamada tüm hatalar tek bir merkezden (`src/app/core/error-logger.ts`) konsola yazılır.
+Çıktı biçimi her yerde aynıdır:
+
+```text
+[Tahakkuk] [HATA] Drive bağlantısı kurulamadı | 2026-11-24T09:00:00.000Z | Error: TOKEN_WAIT_TIMEOUT
+```
+
+- `[HATA]` / `[UYARI]` — kayıt seviyesi; ardından hata bağlamı, ISO zaman damgası ve hata adı/mesajı gelir.
+- Kayıtların ardından hatanın kendisi (yığın iziyle) ve varsa ek ayrıntılar (Firebase hata kodu,
+  kaynak dosya/satır, rota) konsola ayrı argüman olarak yazılır.
+
+Hangi durumların kaydedildiği:
+
+| Kaynak | Kapsam |
+| --- | --- |
+| `GlobalErrorHandler` (`core/error-handler.ts`) | Angular'ın yakaladığı tüm yakalanmamış hatalar |
+| `global-error-listeners.ts` | `window.onerror` (çalışma zamanı hataları, yüklenemeyen kaynaklar) ve `unhandledrejection` (yakalanmamış Promise reddi) |
+| `app.config.ts` → `withNavigationErrorHandler(...)` | Sayfa yönlendirme hataları |
+| `ErrorLogger` (`core/error-logger.ts`) | Servis ve bileşenlerdeki `catch` blokları (her `catch` bir hata günlüğü yazar) |
+
+`catch` bloğu hatayı yutmuyorsa bile kaydedilir; kullanıcıya gösterilen Türkçe mesaj ile konsol
+kaydı birlikte çalışır. Tanılamak için geliştirici araçları → Console sekmesinde `[Tahakkuk]`
+önekiyle filtreleme yapın.
+
 ## Proje yapısı
 
 ```text
@@ -208,6 +265,9 @@ src/
 │   │   ├── auth.service.ts        # Firebase Authentication sarmalayıcı
 │   │   ├── auth.guard.ts          # Korumalı rota guard'ı
 │   │   ├── auth-errors.ts         # Firebase hata kodları -> Türkçe mesaj
+│   │   ├── error-handler.ts       # Global hata yakalayıcı (Angular ErrorHandler)
+│   │   ├── error-logger.ts        # Merkezi hata günlüğü: [Tahakkuk] önekiyle konsola yazar
+│   │   ├── global-error-listeners.ts # window.onerror / unhandledrejection dinleyicileri
 │   │   ├── google-drive.service.ts # Google Drive yetkilendirme ve klasör oluşturma
 │   │   ├── seo.service.ts         # Başlık, meta, Open Graph, canonical
 │   │   ├── app-info.ts            # package.json'dan sürüm bilgisi
@@ -217,9 +277,11 @@ src/
 │   │   └── footer.component.*     # Altbilgi ve sürüm bilgisi
 │   ├── features/
 │   │   ├── login/*                # Giriş ve hesap oluşturma
-│   │   ├── dashboard/*            # Pano ve modül kartları
+│   │   ├── home/*                 # Anasayfa: ana ve yardımcı modül kartları
 │   │   ├── profile/*              # Profil düzenleme + bağlı hesaplar (Google Drive)
-│   │   └── modules/stamp-tax/*    # Damga vergisi hesaplama (herkese açık)
+│   │   ├── legal/*                 # Gizlilik politikasi (/policy) ve kullanim koşullari (/terms)
+│   │   ├── modules/stamp-tax/*    # Damga vergisi hesaplama (herkese açık)
+│   │   └── modules/documents/*    # Dosya modülü: kayıt listesi, popup menüler, Drive sheet
 │   ├── app.routes.ts              # Rotalar (public + korumalı)
 │   └── app.config.ts              # Provider'lar, Türkçe locale
 ├── environments/environment.ts    # .env'den üretilir (commit edilmez)
@@ -228,7 +290,33 @@ src/
 
 ## Modüller
 
-### Damga Vergisi Hesaplama (`/modules/stamp-tax`)
+### Dosya Modülü (`/modules/dosya`)
+
+İş kayıtlarını yönetmek ve Google Drive'a aktarmak için:
+
+- **Kayıt listesi**: kayıtlar tablo halinde listelenir (işin adı, türü, usulü, usul detayı, alım
+  tarihi, durum).
+- **Menu**: `Yeni kayıt`, `Düzenle`, `Sil`, `Drive'a Kaydet`, `Drive'dan Yükle` ve gerektiğinde
+  `Google Drive'a bağlan` düğmeleri (düğme, bağlantı yokken veya oturum izni tazelenemediğinde
+  görünür).
+- **Popup akışı**: `Düzenle` ve `Sil` bir seçim penceresi açar; listeden kayıt seçilip onay
+  verdiğinizde işlem uygulanır. `Yeni kayıt` ve düzenleme formu doğrulama şemasına
+  (`src/app/features/modules/documents/document.schema.json`) göre kontrol edilir; hatalı alanlar
+  form altında Türkçe olarak gösterilir.
+- **Alanlar**: işin adı, türü (Mal/Hizmet/Yapım), usulü (İhale/Doğrudan Temin/Diğer) ve usule
+  bağlı alt seçenekler (ihale: Açık İhale, Pazarlık 21-A/21-B/21-D; doğrudan temin:
+  22A/22B/22C), alım tarihi ve isteğe bağlı açıklama.
+- **Drive'a Kaydet**: `tahakkuk.web.app` klasöründe (yoksa oluşturulur) **dosyalar** adlı tablo
+  (Google Sheets) bulunur, yoksa oluşturulur; yeni tablo oluşturulduğunda başlık satırı da
+  yazılır. Bekleyen kayıtlar tabloya eklenir ve listede "Kaydedildi" olarak işaretlenir.
+- **Drive'dan Yükle**: tablodaki veri satırları okunup listeye eklenir (aynı kayıt iki kez
+  eklenmez). Drive bağlantısı açıkken modül açıldığında satırlar otomatik yüklenir; erişim
+  token'ı sayfa yenilemesiyle kaybolduğu için servis izni sessizce yeniler (`prompt: 'none`).
+  Sessiz yenileme olmazsa "Google Drive'a bağlan" düğmesiyle yeniden bağlanmanız istenir.
+- **Depolama**: kayıtlar cihazdaki `localStorage` alanında (`tahakkuk.documents.v1`) tutulur ve
+  hesaptan çıkış yapıldığında silinir.
+
+### Damga Vergisi Hesaplama (`/modules/damga-vergisi-modulu`)
 
 | Sıra | Alan | Nasıl hesaplanır |
 | --- | --- | --- |
@@ -240,7 +328,7 @@ src/
 | 6 | Ödenecek tutar | `KDV dahil fatura bedeli − damga vergisi kesintisi − tevkifat kesintisi` (sistemsel) |
 
 Tutarlar kuruş hassasiyetinde yuvarlanır ve Türkçe para birimi biçiminde (`₺1.000,00`)
-gösterilir. Modül giriş gerektirmez; yalnızca dashboard'daki modül kartı üzerinden erişilir
+gösterilir. Modül giriş gerektirmez; yalnızca anasayfadaki yardımcı modül kartı üzerinden erişilir
 (menülerde ve giriş ekranında listelenmez).
 
 ## SEO
@@ -280,6 +368,7 @@ bölümüne bakın.
 | Google ile yetkilendirme penceresi açılmıyor | Cloud Console → Credentials → Web client → **Authorized JavaScript origins** içine `http://localhost:4200` ekleyin; Drive API etkin olmalı. |
 | Yetkilendirme 45 sn sonra “pencere yanıt vermedi” hatası veriyor | Pencere pop-up engelleyicide açıldıysa izne basın; yoksa bulundüğunuz adresin (ör. `http://localhost:4200`) **Authorized JavaScript origins** listesinde olduğunu ve OAuth consent ekranında hesabınızın **Test users** listesinde olduğunu kontrol edin. |
 | Drive klasörü oluşmuyor | OAuth consent screen → Test users listesinde hesabınız olsun; `drive.file` kapsamı için ek izin gerekmez. |
+| Bir işlem hata veriyor ama sebebi belli değil | Tüm hatalar tarayıcı konsoluna `[Tahakkuk] [HATA] <bağlam> | <zaman> \| <hata>` biçiminde yazılır (hata ayrıntısı ve yığın iziyle birlikte); geliştirici araçları → Console sekmesinde `[Tahakkuk]` ile filtreleyin. |
 
 ## İlgili belgeler
 

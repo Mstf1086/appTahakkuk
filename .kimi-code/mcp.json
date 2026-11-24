@@ -5,17 +5,9 @@
       "args": [
         "-y",
         "@modelcontextprotocol/server-filesystem",
-        "/tmp"
+        "/tmp",
+        "/home/m_erguven10/appTahakkuk"
       ]
-    },
-    "firebase": {
-      "command": "npx",
-      "args": [
-        "-y",
-        "firebase-tools@latest",
-        "mcp"
-      ],
-      "enabled": true
     },
     "angular-cli": {
       "command": "npx",
@@ -23,6 +15,25 @@
         "-y",
         "@angular/cli",
         "mcp"
+      ]
+    },
+    "mdn": {
+      "url": "https://mcp.mdn.mozilla.net/"
+    },
+    "firebase": {
+      "command": "npx",
+      "args": [
+        "-y",
+        "firebase-tools@latest",
+        "mcp"
+      ]
+    },
+    "chrome-devtools": {
+      "command": "npx",
+      "args": [
+        "-y",
+        "chrome-devtools-mcp@latest",
+        "--headless"
       ]
     }
   }

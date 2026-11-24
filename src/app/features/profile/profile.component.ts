@@ -3,6 +3,7 @@ import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { AuthService } from '../../core/auth.service';
 import { toAuthErrorMessage } from '../../core/auth-errors';
 import { GoogleDriveService } from '../../core/google-drive.service';
+import { ErrorLogger } from '../../core/error-logger';
 import { SeoService } from '../../core/seo.service';
 
 @Component({
@@ -16,6 +17,7 @@ export class ProfileComponent {
   private readonly formBuilder = inject(FormBuilder);
   private readonly authService = inject(AuthService);
   private readonly seoService = inject(SeoService);
+  private readonly logger = inject(ErrorLogger);
   readonly drive = inject(GoogleDriveService);
 
   constructor() {
@@ -67,6 +69,7 @@ export class ProfileComponent {
       await this.authService.updateDisplayName(this.form.getRawValue().displayName);
       this.message.set('Profil bilgileriniz güncellendi.');
     } catch (error) {
+      this.logger.error('Profil güncellenemedi', error);
       this.errorMessage.set(toAuthErrorMessage(error));
     } finally {
       this.saving.set(false);

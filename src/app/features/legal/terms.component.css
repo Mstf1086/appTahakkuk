@@ -1,0 +1,73 @@
+.page {
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+  max-width: 56rem;
+}
+
+.page-header {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+}
+
+.updated {
+  margin: 0;
+  color: #6b7280;
+  font-size: 0.875rem;
+}
+
+.legal {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.legal h2 {
+  margin: 1rem 0 0;
+  font-size: 1.05rem;
+  color: #111827;
+}
+
+.legal p,
+.legal ul {
+  margin: 0;
+  color: #374151;
+  line-height: 1.6;
+}
+
+.legal ul {
+  padding-left: 1.25rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.legal a {
+  color: #4f46e5;
+  font-weight: 600;
+  text-decoration: none;
+}
+
+.legal a:hover {
+  text-decoration: underline;
+}
+
+.legal a:focus-visible {
+  outline: 3px solid rgb(99 102 241 / 35%);
+  outline-offset: 2px;
+}
+
+.legal code {
+  padding: 0.1rem 0.35rem;
+  border-radius: 0.35rem;
+  background: #eef2ff;
+  color: #3730a3;
+  font-size: 0.85em;
+}
+
+@media (max-width: 900px) {
+  .page {
+    max-width: none;
+  }
+}

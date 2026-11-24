@@ -17,6 +17,13 @@
       </p>
     }
 
+    @if (idleNotice) {
+      <p class="alert alert--warning" role="status">
+        30 dakika boyunca işlem yapılmadığı için oturumunuz güvenliğiniz için kapatıldı. Devam
+        etmek için tekrar giriş yapın.
+      </p>
+    }
+
     <form [formGroup]="form" (ngSubmit)="submit()" novalidate>
       @if (isRegisterMode) {
         <label for="displayName">Ad Soyad</label>

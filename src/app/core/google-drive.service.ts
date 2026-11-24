@@ -1,6 +1,7 @@
-import { Injectable, computed, signal } from '@angular/core';
+import { Injectable, computed, effect, inject, signal } from '@angular/core';
 import { environment } from '../../environments/environment';
 import { AuthService } from './auth.service';
+import { ErrorLogger } from './error-logger';
 
 export type DriveLinkStatus = 'disconnected' | 'connecting' | 'linked' | 'error';
 
@@ -15,6 +16,10 @@ export interface DriveLinkInfo {
 
 const STORAGE_KEY = 'tahakkuk.driveLink';
 const FOLDER_NAME = 'tahakkuk.web.app';
+const SHEET_NAME = 'dosyalar';
+const SHEET_MIME_TYPE = 'application/vnd.google-apps.spreadsheet';
+const CONSENT_TOKEN_TIMEOUT = 45000;
+const SILENT_TOKEN_TIMEOUT = 15000;
 const GIS_SCRIPT = 'https://accounts.google.com/gsi/client';
 const SCOPES = [
   'https://www.googleapis.com/auth/drive.file',
@@ -23,13 +28,15 @@ const SCOPES = [
 ].join(' ');
 
 interface GoogleAccounts {
-  oauth2?: {
-    initTokenClient: (config: {
-      client_id: string;
-      scope: string;
-      login_hint?: string;
-      callback: (response: { access_token?: string; error?: string }) => void;
-    }) => { requestAccessToken: (overrides?: { prompt?: string }) => void };
+  accounts?: {
+    oauth2?: {
+      initTokenClient: (config: {
+        client_id: string;
+        scope: string;
+        login_hint?: string;
+        callback: (response: { access_token?: string; error?: string }) => void;
+      }) => { requestAccessToken: (overrides?: { prompt?: string }) => void };
+    };
   };
 }
 
@@ -39,12 +46,23 @@ declare global {
   }
 }
 
+// İlk satır başlık satırıysa okurken atlanır (hücreler boşluktan arındırılmış karşılaştırılır).
+function isHeaderRow(row: string[] | undefined, header: string[]): boolean {
+  if (!row || row.length !== header.length) {
+    return false;
+  }
+  return header.every((cell, index) => cell === row[index]);
+}
+
 @Injectable({ providedIn: 'root' })
 export class GoogleDriveService {
   private readonly auth: AuthService;
   private readonly statusSignal = signal<DriveLinkStatus>('disconnected');
   private readonly busySignal = signal(false);
   private readonly errorSignal = signal('');
+  // Erişim token'ı yalnızca bellekte tutulur, kalıcı saklanmaz. Sinyal olması
+  // "oturum hazır" bilgisinin şablonda anında güncellenmesini sağlar.
+  private readonly accessTokenSignal = signal<string | null>(null);
 
   readonly isConfigured = Boolean(environment.google.clientId);
   readonly status = this.statusSignal.asReadonly();
@@ -52,10 +70,18 @@ export class GoogleDriveService {
   readonly error = this.errorSignal.asReadonly();
   readonly info = signal<DriveLinkInfo | null>(null);
   readonly isLinked = computed(() => this.status() === 'linked' && this.info() !== null);
+  readonly hasSessionToken = computed(() => this.accessTokenSignal() !== null);
 
-  constructor(auth: AuthService) {
+  constructor(auth: AuthService, private readonly logger: ErrorLogger) {
     this.auth = auth;
     void auth.waitForAuthState().then(() => this.restore());
+    // Oturum kapandığında (çıkış veya oturum düşmesi) bağlantı durumu ve bilgisi sıfırlanır;
+    // tarayıcıdaki bağlantı kaydı AuthService tarafından temizlenir.
+    effect(() => {
+      if (!this.auth.user()) {
+        this.disconnect();
+      }
+    });
   }
 
   async connect(): Promise<void> {
@@ -79,6 +105,7 @@ export class GoogleDriveService {
 
     try {
       const token = await this.requestToken();
+      this.accessTokenSignal.set(token);
       const account = await this.fetchAccount(token);
 
       if (!account.email) {
@@ -98,8 +125,11 @@ export class GoogleDriveService {
 
       this.info.set(info);
       this.statusSignal.set('linked');
-      sessionStorage.setItem(STORAGE_KEY, JSON.stringify(info));
+      // Bağlantı bilgisi oturum boyunca (sekmeler arası ve sayfa yenilemede) açık kalsın diye
+      // localStorage'da tutulur; çıkışta AuthService tarafından silinir. Token saklanmaz.
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(info));
     } catch (error) {
+      this.logger.error('Drive bağlantısı kurulamadı', error);
       this.statusSignal.set('error');
       this.errorSignal.set(toDriveErrorMessage(error));
     } finally {
@@ -108,14 +138,15 @@ export class GoogleDriveService {
   }
 
   disconnect(): void {
-    sessionStorage.removeItem(STORAGE_KEY);
+    this.accessTokenSignal.set(null);
+    localStorage.removeItem(STORAGE_KEY);
     this.info.set(null);
     this.errorSignal.set('');
     this.statusSignal.set('disconnected');
   }
 
   private restore(): void {
-    const raw = sessionStorage.getItem(STORAGE_KEY);
+    const raw = localStorage.getItem(STORAGE_KEY);
     if (!raw) {
       return;
     }
@@ -125,17 +156,40 @@ export class GoogleDriveService {
         this.info.set(info);
         this.statusSignal.set('linked');
       } else {
-        sessionStorage.removeItem(STORAGE_KEY);
+        localStorage.removeItem(STORAGE_KEY);
       }
-    } catch {
-      sessionStorage.removeItem(STORAGE_KEY);
+    } catch (error) {
+      this.logger.warn('Drive bağlantı bilgisi bozuk, temizlendi', error);
+      localStorage.removeItem(STORAGE_KEY);
+    }
+  }
+
+  // Sayfa yenilemeden sonra bellek içi token kaybolduğunda, kullanıcıya bir şey
+  // sormadan daha önce verilen izinle (prompt: 'none') sessizce yeni token alınmasını
+  // dener. Başarılıysa true döner; izin yoksa ya da zaman aşımına uğrarsa arayüz
+  // değişmeden false döner.
+  async silentConnect(): Promise<boolean> {
+    if (this.accessTokenSignal() !== null) {
+      return true;
+    }
+    if (!this.isLinked() || !this.isConfigured || this.busySignal()) {
+      return false;
+    }
+
+    try {
+      this.accessTokenSignal.set(await this.requestToken('none'));
+      return true;
+    } catch (error) {
+      this.logger.warn('Sessiz Drive token yenileme başarısız', error);
+      this.accessTokenSignal.set(null);
+      return false;
     }
   }
 
   // login_hint verilmez: kullanıcı Google penceresinde serbestçe hesap seçer veya
   // "hesap oluştur" ile yeni bir Google hesabı açar; Firebase e-postasıyla uyuşması
-  // beklenmez.
-  private async requestToken(): Promise<string> {
+  // beklenmez. 'none' sessiz yenilemedir: arayüz açılmaz, izin yoksa hata döner.
+  private async requestToken(prompt: 'consent' | 'none' = 'consent'): Promise<string> {
     await this.loadGisScript();
 
     return new Promise<string>((resolve, reject) => {
@@ -153,11 +207,16 @@ export class GoogleDriveService {
       // Yetkilendirme penceresi yanıt vermezse (pop-up engellendi, pencere kapatıldı,
       // orijin Cloud Console'da kayıtlı değil) GIS callback'i tetiklenmeyebilir.
       // Aşağıdaki zaman aşımı durumun "Bağlanıyor..." şeklinde asılı kalmasını engeller.
-      const timeout = window.setTimeout(() => {
-        settle(() => reject(new Error('TOKEN_WAIT_TIMEOUT')));
-      }, 45000);
+      // 'none' sessiz yenileme beklenmez: uzun yetkilendirme zaman aşımını beklememek
+      // için kısa süre verilir.
+      const timeout = window.setTimeout(
+        () => {
+          settle(() => reject(new Error('TOKEN_WAIT_TIMEOUT')));
+        },
+        prompt === 'none' ? SILENT_TOKEN_TIMEOUT : CONSENT_TOKEN_TIMEOUT,
+      );
 
-      const tokenClient = window.google?.oauth2?.initTokenClient({
+      const tokenClient = window.google?.accounts?.oauth2?.initTokenClient({
         client_id: environment.google.clientId,
         scope: SCOPES,
         callback: (response) => {
@@ -177,7 +236,7 @@ export class GoogleDriveService {
       }
 
       try {
-        tokenClient.requestAccessToken({ prompt: 'consent' });
+        tokenClient.requestAccessToken({ prompt });
       } catch (error) {
         settle(() => reject(error instanceof Error ? error : new Error('TOKEN_START_ERROR')));
       }
@@ -188,14 +247,14 @@ export class GoogleDriveService {
   // içerik): aralıklarla yeniden deneriz, en son denemede zaman aşımı olursa
   // script'i sayfadan söküp temiz bir yükleme yaparız.
   private loadGisScript(): Promise<void> {
-    if (window.google?.oauth2) {
+    if (window.google?.accounts?.oauth2) {
       return Promise.resolve();
     }
 
     const attempt = (removeExisting: boolean): Promise<void> =>
       new Promise<void>((resolve, reject) => {
         const poll = window.setInterval(() => {
-          if (window.google?.oauth2) {
+          if (window.google?.accounts?.oauth2) {
             window.clearInterval(poll);
             window.clearTimeout(timeout);
             resolve();
@@ -233,7 +292,10 @@ export class GoogleDriveService {
         document.head.appendChild(script);
       });
 
-    return attempt(false).catch(() => attempt(true));
+    return attempt(false).catch((firstError) => {
+      this.logger.warn('GIS script ilk yükleme denemesi başarısız', firstError);
+      return attempt(true);
+    });
   }
 
   private async fetchAccount(token: string): Promise<{ email: string }> {
@@ -256,17 +318,19 @@ export class GoogleDriveService {
       { headers: { Authorization: `Bearer ${token}` } },
     );
 
-    if (list.ok) {
-      const data = (await list.json()) as {
-        files?: { id: string; webViewLink?: string }[];
+    if (!list.ok) {
+      throw new Error('FOLDER_LOOKUP_ERROR');
+    }
+
+    const data = (await list.json()) as {
+      files?: { id: string; webViewLink?: string }[];
+    };
+    const existing = data.files?.[0];
+    if (existing) {
+      return {
+        id: existing.id,
+        webViewLink: existing.webViewLink ?? `https://drive.google.com/drive/folders/${existing.id}`,
       };
-      const existing = data.files?.[0];
-      if (existing) {
-        return {
-          id: existing.id,
-          webViewLink: existing.webViewLink ?? `https://drive.google.com/drive/folders/${existing.id}`,
-        };
-      }
     }
 
     const create = await fetch('https://www.googleapis.com/drive/v3/files?fields=id,webViewLink', {
@@ -291,9 +355,182 @@ export class GoogleDriveService {
       webViewLink: created.webViewLink ?? `https://drive.google.com/drive/folders/${created.id}`,
     };
   }
+
+  // Drive'da "dosyalar" tablosunu (Google Sheets) bulur, yoksa tahakkuk.web.app klasörü içinde
+  // oluşturur; satırlar tabloya eklenir. Yeni tablo oluşturulduğunda başlık satırı da yazılır.
+  // Token yalnızca bellekte tutulur, kalıcı saklanmaz.
+  async saveDocumentsToSheet(options: {
+    header: string[];
+    rows: string[][];
+  }): Promise<{ spreadsheetId: string; spreadsheetUrl: string; appendedRows: number }> {
+    if (options.rows.length === 0) {
+      throw new Error('SHEET_NO_ROWS');
+    }
+
+    // Bellekte token yoksa (sayfa yenilemesi sonrası) kullanıcı eylemiyle açılan
+    // kaydetme akışında yetkilendirme penceresi yeniden gösterilir.
+    let token = this.accessTokenSignal();
+    if (token === null) {
+      token = await this.requestToken();
+      this.accessTokenSignal.set(token);
+    }
+    const folder = await this.ensureFolder(token);
+    const sheet = await this.findOrCreateSheet(token, folder.id);
+    const appendedRows = await this.appendSheetRows(token, sheet.id, sheet.isNew, options);
+
+    return {
+      spreadsheetId: sheet.id,
+      spreadsheetUrl: sheet.webViewLink,
+      appendedRows,
+    };
+  }
+
+  // Tablo okuma/yazma öncesi token: bellekte varsa kullanılır; yoksa sessizce
+  // yenilenir. Sessiz yenileme de olmazsa çağıran anlamlı bir hata kodu alır ve
+  // kullanıcıyı yeniden bağlanmaya yönlendirir.
+  private async resolveSheetToken(): Promise<string> {
+    const current = this.accessTokenSignal();
+    if (current !== null) {
+      return current;
+    }
+    if (await this.silentConnect()) {
+      return this.accessTokenSignal() as string;
+    }
+    throw new Error('SESSION_TOKEN_REQUIRED');
+  }
+
+  // "dosyalar" tablosundaki veri satırlarını okur. Aralık açık uçlu yazılır: A1 notasyonunda
+  // "A1" tek bir hücreye karşılık geldiği için sekmeli aralık kullanılır. İlk satır başlık
+  // satırıysa atlanır; tablo yoksa boş dizi döner.
+  async loadSheetRows(header: string[] = []): Promise<string[][]> {
+    const token = await this.resolveSheetToken();
+    const folder = await this.ensureFolder(token);
+    const sheet = await this.findSheet(token, folder.id);
+    if (!sheet) {
+      return [];
+    }
+
+    const response = await fetch(
+      `https://sheets.googleapis.com/v4/spreadsheets/${sheet.id}/values/A:ZZ?majorDimension=ROWS`,
+      { headers: { Authorization: `Bearer ${token}` } },
+    );
+    if (!response.ok) {
+      throw new Error(await this.sheetErrorCode(response, 'SHEET_READ_ERROR'));
+    }
+
+    const data = (await response.json()) as { values?: string[][] };
+    const rows = (data.values ?? []).map((row) => row.map((cell) => (cell ?? '').trim()));
+    return isHeaderRow(rows[0], header) ? rows.slice(1) : rows;
+  }
+
+  private async findSheet(
+    token: string,
+    folderId: string,
+  ): Promise<{ id: string; webViewLink: string } | null> {
+    const query = encodeURIComponent(
+      `name = '${SHEET_NAME}' and mimeType = '${SHEET_MIME_TYPE}' and trashed = false and '${folderId}' in parents`,
+    );
+    const found = await fetch(
+      `https://www.googleapis.com/drive/v3/files?q=${query}&fields=files(id,webViewLink)&pageSize=1`,
+      { headers: { Authorization: `Bearer ${token}` } },
+    );
+
+    if (!found.ok) {
+      throw new Error('SHEET_LOOKUP_ERROR');
+    }
+
+    const data = (await found.json()) as { files?: { id: string; webViewLink?: string }[] };
+    const existing = data.files?.[0];
+    if (!existing) {
+      return null;
+    }
+    return {
+      id: existing.id,
+      webViewLink: existing.webViewLink ?? `https://docs.google.com/spreadsheets/d/${existing.id}`,
+    };
+  }
+
+  private async findOrCreateSheet(
+    token: string,
+    folderId: string,
+  ): Promise<{ id: string; webViewLink: string; isNew: boolean }> {
+    const existing = await this.findSheet(token, folderId);
+    if (existing) {
+      return { ...existing, isNew: false };
+    }
+
+    const create = await fetch('https://www.googleapis.com/drive/v3/files?fields=id,webViewLink', {
+      method: 'POST',
+      headers: {
+        Authorization: `Bearer ${token}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        name: SHEET_NAME,
+        mimeType: SHEET_MIME_TYPE,
+        parents: [folderId],
+      }),
+    });
+
+    if (!create.ok) {
+      throw new Error('SHEET_CREATE_ERROR');
+    }
+
+    const created = (await create.json()) as { id: string; webViewLink?: string };
+    return {
+      id: created.id,
+      webViewLink: created.webViewLink ?? `https://docs.google.com/spreadsheets/d/${created.id}`,
+      isNew: true,
+    };
+  }
+
+  private async appendSheetRows(
+    token: string,
+    spreadsheetId: string,
+    isNewSheet: boolean,
+    options: { header: string[]; rows: string[][] },
+  ): Promise<number> {
+    const values = isNewSheet ? [options.header, ...options.rows] : options.rows;
+    // RAW seçilir: metin ve tarih değerleri ayrıştırılmaz, okumada yazılan biçim korunur.
+    const response = await fetch(
+      `https://sheets.googleapis.com/v4/spreadsheets/${spreadsheetId}/values/A1:append?valueInputOption=RAW&insertDataOption=INSERT_ROWS`,
+      {
+        method: 'POST',
+        headers: {
+          Authorization: `Bearer ${token}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          range: 'A1',
+          majorDimension: 'ROWS',
+          values,
+        }),
+      },
+    );
+
+    if (!response.ok) {
+      throw new Error(await this.sheetErrorCode(response, 'SHEET_APPEND_ERROR'));
+    }
+
+    return values.length;
+  }
+
+  private async sheetErrorCode(response: Response, fallback: string): Promise<string> {
+    try {
+      const data = (await response.json()) as { error?: { message?: string; status?: string } };
+      const message = data.error?.message ?? data.error?.status ?? '';
+      if (/has not been used|is disabled|accessNotConfigured|PERMISSION_DENIED/i.test(message)) {
+        return 'SHEET_API_DISABLED';
+      }
+    } catch (error) {
+      // Yanıt gövdesi okunamazsa çağıranın verdiği genel hata kullanılır.
+      this.logger.warn('Drive yanıt gövdesi okunamadı', error);
+    }
+    return fallback;
+  }
 }
 
-function toDriveErrorMessage(error: unknown): string {
+export function toDriveErrorMessage(error: unknown): string {
   const code = error instanceof Error ? error.message : String(error ?? '');
   switch (code) {
     case 'access_denied':
@@ -317,10 +554,49 @@ function toDriveErrorMessage(error: unknown): string {
         'yenileyip tekrar deneyin; sorun sürerse tarayıcı geliştirici konsolunun Network sekmesinde ' +
         'accounts.google.com isteğinin sonucunu ve ağınızın Google erişimini (VPN/ISP engeli) kontrol edin.'
       );
+    case 'FOLDER_LOOKUP_ERROR':
+      return (
+        'Drive klasörü sorgulanamadı. Ağ bağlantınızı kontrol edip tekrar deneyin; klasör ' +
+        'bilinmiyorsa yanlışlıkla ikinci bir klasör oluşturulmaması için işlem durduruldu.'
+      );
     case 'FOLDER_CREATE_ERROR':
       return (
         'Google Drive klasörü oluşturulamadı (kod: ' + code + '). Cloud Console → APIs & Services → Library ' +
         'içinde Google Drive API etkin mi kontrol edin ve yetkide drive dosyalarına erişim izni verin.'
+      );
+    case 'SHEET_NO_ROWS':
+      return 'Kaydedilecek kayıt yok.';
+    case 'SHEET_CREATE_ERROR':
+      return (
+        'Drive içinde "dosyalar" tablosu oluşturulamadı. Google Drive API ve Sheets erişimini ' +
+        'kontrol edip tekrar deneyin.'
+      );
+    case 'SHEET_READ_ERROR':
+      return (
+        'Drive\'daki "dosyalar" tablosu okunamadı. Ağ bağlantınızı kontrol edip tekrar ' +
+        'deneyin; sorun sürerse Cloud Console → APIs & Services → Library → "Google Sheets API" ' +
+        'etkin mi kontrol edin.'
+      );
+    case 'SHEET_APPEND_ERROR':
+      return (
+        'Drive içindeki "dosyalar" tablosuna yazılamadı. Tablo silinmiş veya erişim ' +
+        'kısıtlanmış olabilir; tekrar deneyin.'
+      );
+    case 'SHEET_LOOKUP_ERROR':
+      return (
+        'Drive\'daki "dosyalar" tablosu sorgulanamadı. Ağ bağlantınızı kontrol edip tekrar ' +
+        'deneyin; sorgu hatasında tablo bilinmediği için işlem güvenli şekilde durduruldu.'
+      );
+    case 'SHEET_API_DISABLED':
+      return (
+        'Google Sheets API bu projede etkin değil. Google Cloud Console → proje tahakkuk-bc03b ' +
+        '→ APIs & Services → Library → "Google Sheets API" → Enable yapın, birkaç dakika ' +
+        'bekleyip tekrar deneyin. Kod tarafında değişiklik gerekmez.'
+      );
+    case 'SESSION_TOKEN_REQUIRED':
+      return (
+        'Google Drive oturum izni sessizce yenilenemedi. Yeniden bağlanmak için ' +
+        '"Google Drive\'a bağlan" düğmesini kullanın.'
       );
     case 'USERINFO_ERROR':
       return 'Google hesabı bilgisi alınamadı (kod: ' + code + '). Tekrar deneyin.';
