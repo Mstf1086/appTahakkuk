@@ -1,7 +1,14 @@
 import { Injectable, computed, effect, inject, signal } from '@angular/core';
 import { AuthService } from '../../../core/auth.service';
 import { ErrorLogger } from '../../../core/error-logger';
-import { DocumentRecord, createRecordId, mergeSheetRecords, validateDocumentRecord } from './document-record';
+import {
+  DocumentRecord,
+  createRecordId,
+  createRecordNumber,
+  mergeSheetRecords,
+  sortRecords,
+  validateDocumentRecord,
+} from './document-record';
 
 const STORAGE_KEY = 'tahakkuk.documents.v1';
 
@@ -33,8 +40,13 @@ export class DocumentsService {
       return errors;
     }
 
-    const record: DocumentRecord = { ...input, id: createRecordId() };
-    this.recordsSignal.update((records) => [record, ...records]);
+    const current = this.recordsSignal();
+    const record: DocumentRecord = {
+      ...input,
+      id: createRecordId(),
+      recordNumber: createRecordNumber(current),
+    };
+    this.recordsSignal.set(sortRecords([...current, record]));
     this.persist();
     return {};
   }
@@ -45,8 +57,10 @@ export class DocumentsService {
       return errors;
     }
 
-    this.recordsSignal.update((records) =>
-      records.map((item) => (item.id === record.id ? record : item)),
+    this.recordsSignal.set(
+      sortRecords(
+        this.recordsSignal().map((item) => (item.id === record.id ? record : item)),
+      ),
     );
     this.persist();
     return {};

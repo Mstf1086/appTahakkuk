@@ -8,6 +8,7 @@ export type DogrudanTeminUsulu = 'dogrudanTemin22A' | 'dogrudanTemin22B' | 'dogr
 export interface DocumentRecord {
   id: string;
   source?: 'yerel' | 'drive';
+  recordNumber?: string;
   isinAdi: string;
   turu: Turu;
   usulu: Usulu;
@@ -204,6 +205,7 @@ export function validateDocumentRecord(
 }
 
 export const DOCUMENT_SHEET_HEADERS = [
+  'Sıra No',
   'İşin Adı',
   'Türü',
   'Usulü',
@@ -213,8 +215,33 @@ export const DOCUMENT_SHEET_HEADERS = [
   'Kaydedilme Tarihi',
 ] as const;
 
+// Drive'daki "dosyalar" tablosundaki benzersiz kayıt numarası (Sıra No sütunu).
+export type RecordNumber = string;
+
+const RECORD_NUMBER_PREFIX = 'REC-';
+const RECORD_NUMBER_WIDTH = 6;
+
+export function formatRecordNumber(value: number): RecordNumber {
+  return `${RECORD_NUMBER_PREFIX}${String(value).padStart(RECORD_NUMBER_WIDTH, '0')}`;
+}
+
+// "REC-000042" -> 42; tanınmayan biçim null döner.
+export function parseRecordNumber(value: string): number | null {
+  const match = /^REC-(\d{1,})$/.exec(value.trim());
+  return match ? Number(match[1]) : null;
+}
+
+export function createRecordNumber(existing: DocumentRecord[]): RecordNumber {
+  const max = existing.reduce((acc, record) => {
+    const parsed = parseRecordNumber(record.recordNumber ?? '');
+    return parsed !== null && parsed > acc ? parsed : acc;
+  }, 0);
+  return formatRecordNumber(max + 1);
+}
+
 export function toSheetRow(record: DocumentRecord): string[] {
   return [
+    record.recordNumber ?? '',
     record.isinAdi,
     turuLabel(record.turu),
     usuluLabel(record.usulu),
@@ -231,11 +258,13 @@ export function createRecordId(): string {
 }
 
 // Drive'daki "dosyalar" tablosundan okunan satırı kayda çevirir. Etiketler tanınmazsa
-// veya zorunlu alanlar boşsa null döner (satır atlanır).
+// veya zorunlu alanlar boşsa null döner (satır atlanır). Başlıksız eski tablolardan
+// gelen satırlar da (ilk sütun Sıra No olmadan) okunur.
 export function fromSheetRow(row: string[]): DocumentRecord | null {
-  const [isinAdi, turuText, usuluText, usulDetayi, tarihText, aciklama] = row.map((cell) =>
-    (cell ?? '').trim(),
-  );
+  const cells = row.map((cell) => (cell ?? '').trim());
+  const hasRecordNumber = parseRecordNumber(cells[0] ?? '') !== null;
+  const [recordNumber, isinAdi, turuText, usuluText, usulDetayi, tarihText, aciklama] =
+    hasRecordNumber ? cells : ['', ...cells];
 
   const alimTarihi = normalizeSheetDate(tarihText);
   if (!isinAdi || !alimTarihi) {
@@ -256,6 +285,7 @@ export function fromSheetRow(row: string[]): DocumentRecord | null {
   return {
     id: createRecordId(),
     source: 'drive',
+    ...(recordNumber ? { recordNumber } : {}),
     isinAdi,
     turu,
     usulu,
@@ -268,28 +298,66 @@ export function fromSheetRow(row: string[]): DocumentRecord | null {
 }
 
 export function recordKey(record: DocumentRecord): string {
-  return `${record.isinAdi.toLowerCase()}|${record.alimTarihi}|${record.turu}`;
+  // Benzersiz kayıt numarası varsa tekilleştirme onunla yapılır; eski satırlarda
+  // (numarasız) ad+tarih+tür anahtarı kullanılır.
+  if (record.recordNumber) {
+    return `no:${record.recordNumber.toUpperCase()}`;
+  }
+  return legacyRecordKey(record);
 }
 
-// Drive'dan okunan satırları mevcut kayıtlarla birleştirir; aynı kayıt (ad+tarih+tür)
-// yerelde varsa yeniden eklenmez. Eklenen kayıt sayısını döner.
+// Geçiş dönemi anahtarı: ad+tarih+tür (numaradan bağımsız eşleşme için).
+export function legacyRecordKey(record: DocumentRecord): string {
+  return `eski:${record.isinAdi.toLowerCase()}|${record.alimTarihi}|${record.turu}`;
+}
+
+// Drive'dan okunan satırları mevcut kayıtlarla birleştirir; aynı kayıt (Sıra No ya da
+// numarasız eski kayıtlarda ad+tarih+tür) yerelde varsa yeniden eklenmez. Numarasız yerel
+// kayıt, numaralı Drive satırıyla eşleşirse numarası geriye dönük doldurulur. Eklenen
+// kayıt sayısını döner. Liste Sıra No'ya göre artan sıralanır; numarasız kayıtlar sona gider.
 export function mergeSheetRecords(current: DocumentRecord[], loaded: DocumentRecord[]): {
   records: DocumentRecord[];
   added: number;
 } {
-  const keys = new Set(current.map((record) => recordKey(record)));
   const records = [...current];
   let added = 0;
 
   for (const record of loaded) {
-    const key = recordKey(record);
-    if (keys.has(key)) {
+    // Numaralı ↔ numarasız kayıtlar geçiş döneminde eski anahtarla da eşleşir.
+    const incomingKeys = new Set([recordKey(record), legacyRecordKey(record)]);
+    const matchIndex = records.findIndex(
+      (item) =>
+        incomingKeys.has(recordKey(item)) || incomingKeys.has(legacyRecordKey(item)),
+    );
+
+    if (matchIndex >= 0) {
+      const existing = records[matchIndex];
+      if (!existing.recordNumber && record.recordNumber) {
+        records[matchIndex] = { ...existing, recordNumber: record.recordNumber };
+      }
       continue;
     }
-    keys.add(key);
+
     records.push(record);
     added += 1;
   }
 
-  return { records, added };
+  return { records: sortRecords(records), added };
+}
+
+export function sortRecords(records: DocumentRecord[]): DocumentRecord[] {
+  return [...records].sort((a, b) => {
+    const numberA = parseRecordNumber(a.recordNumber ?? '');
+    const numberB = parseRecordNumber(b.recordNumber ?? '');
+    if (numberA !== null && numberB !== null) {
+      return numberA - numberB;
+    }
+    if (numberA !== null) {
+      return -1;
+    }
+    if (numberB !== null) {
+      return 1;
+    }
+    return 0;
+  });
 }

@@ -7,6 +7,22 @@ sürümler [Semantic Versioning](https://semver.org/lang/tr/) kurallarına uyar.
 son bileşeni bir artırılır (`0.0.1` → `0.0.2`); `0.0` (major.minor) kısmı yalnızca proje sahibi
 istediğinde değiştirilir.
 
+## [0.0.25] - 2026-11-24
+
+### Eklenen
+
+- **Benzersiz Sıra No**: Her kayıt `REC-000001` biçiminde kalıcı ve benzersiz bir numara alır;
+  hem uygulama listesinde hem de Drive'daki "dosyalar" tablosunda **Sıra No** sütunu olarak
+  gösterilir. Listeler ve tablo okuması bu numaraya göre artan sıralanır.
+- "dosyalar" tablosu artık başlık satırıyla yazılır; okumada başlık satırı otomatik atlanır.
+
+### Değiştirilen
+
+- **Eksik veri sorunu giderildi**: Önceki sürümde "test" ve "TEST" gibi ad/tarih/tür değeri
+  aynı olan satırlar tekilleştirmede karışıp atlanıyordu; tekilleştirme artık benzersiz
+  Sıra No üzerinden yapılır. Başlıksız eski satırlar (Sıra No sütunu olmadan) da okunur;
+  numarasız yerel kayıt, numaralı Drive satırıyla eşleştiğinde numara geriye dönük doldurulur.
+
 ## [0.0.24] - 2026-11-24
 
 ### Değiştirilen

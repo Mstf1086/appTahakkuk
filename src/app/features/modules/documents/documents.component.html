@@ -68,6 +68,7 @@
       <table class="records">
         <thead>
           <tr>
+            <th scope="col">Sıra No</th>
             <th scope="col">İşin adı</th>
             <th scope="col">Türü</th>
             <th scope="col">Usulü</th>
@@ -79,6 +80,7 @@
         <tbody>
           @for (record of records(); track record.id) {
             <tr>
+              <td>{{ record.recordNumber ?? '—' }}</td>
               <td>{{ record.isinAdi }}</td>
               <td>{{ turuLabel(record.turu) }}</td>
               <td>{{ usuluLabel(record.usulu) }}</td>
@@ -133,7 +135,10 @@
                     [checked]="selectedId() === record.id"
                     (change)="selectedId.set(record.id)"
                   />
-                  <span class="record-option-main">{{ record.isinAdi }}</span>
+                  <span class="record-option-main"
+                    >{{ record.recordNumber ? `${record.recordNumber} · ` : ''
+                    }}{{ record.isinAdi }}</span
+                  >
                   <span class="record-option-meta">
                     {{ turuLabel(record.turu) }} · {{ usuluLabel(record.usulu) }} ·
                     {{ record.alimTarihi }}

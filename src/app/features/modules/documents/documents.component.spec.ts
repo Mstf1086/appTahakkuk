@@ -62,6 +62,7 @@ function setValue(fixture: { nativeElement: HTMLElement }, selector: string, val
 
 const sample = {
   id: 'r1',
+  recordNumber: 'REC-000001',
   isinAdi: 'Kırtasiye alımı',
   turu: 'mal',
   usulu: 'diger',
@@ -210,7 +211,8 @@ describe('DocumentsComponent', () => {
     const call = driveStub.saveDocumentsToSheet.mock.calls[0]?.[0];
     expect(call?.header).toContain('İşin Adı');
     expect(call?.rows).toHaveLength(1);
-    expect(call?.rows[0][0]).toBe('Kırtasiye alımı');
+    expect(call?.rows[0][0]).toMatch(/^REC-\d{6}$/);
+    expect(call?.rows[0][1]).toBe('Kırtasiye alımı');
 
     const stored = JSON.parse(localStorage.getItem(STORAGE_KEY) ?? '[]');
     expect(stored[0].exportedAt).toBeTruthy();
