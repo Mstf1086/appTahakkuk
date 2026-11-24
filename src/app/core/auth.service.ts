@@ -85,7 +85,7 @@ export class AuthService {
         const keys: string[] = [];
         for (let index = 0; index < store.length; index += 1) {
           const key = store.key(index);
-          if (key?.startsWith('tahakkuk.')) {
+          if (key?.startsWith('tahakkuk.') && key !== 'tahakkuk.driveLink') {
             keys.push(key);
           }
         }

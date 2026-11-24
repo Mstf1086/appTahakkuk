@@ -143,7 +143,7 @@ describe('GoogleDriveService', () => {
     expect(service.error()).toContain('Google Identity Services scripti');
   });
 
-  it('oturum kapandığında bağlantı bilgisi ve localStorage temizlenir', async () => {
+  it('oturum kapandığında bağlantı durumu sıfırlanır ama localStorage korunur', async () => {
     const service = createService();
 
     await service.connect();
@@ -155,7 +155,9 @@ describe('GoogleDriveService', () => {
 
     expect(service.status()).toBe('disconnected');
     expect(service.info()).toBeNull();
-    expect(localStorage.getItem('tahakkuk.driveLink')).toBeNull();
+    expect(service.hasSessionToken()).toBe(false);
+    // Bağlantı kaydı kalır: kullanıcı tekrar giriş yaptığında yeniden bağlanmadan devam eder.
+    expect(localStorage.getItem('tahakkuk.driveLink')).toBeTruthy();
   });
 
   it('sayfa yenilendiğinde bağlantı localStorage üzerinden geri yüklenir', async () => {

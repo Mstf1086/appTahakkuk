@@ -7,6 +7,24 @@ sürümler [Semantic Versioning](https://semver.org/lang/tr/) kurallarına uyar.
 son bileşeni bir artırılır (`0.0.1` → `0.0.2`); `0.0` (major.minor) kısmı yalnızca proje sahibi
 istediğinde değiştirilir.
 
+## [0.0.24] - 2026-11-24
+
+### Değiştirilen
+
+- **Google Drive bağlantısı oturum boyunca korunur**: Çıkış yapıldığında (veya oturum düştüğünde)
+  `tahakkuk.driveLink` kaydı artık tarayıcıdan silinmez; yalnızca bellek içi erişim token'ı ve
+  bağlantı durumu sıfırlanır. Aynı kullanıcı yeniden giriş yaptığında bağlantı otomatik olarak
+  geri yüklenir, yeniden "Google Drive'a bağlan" izni istenmez. Kayıt yalnızca "Bağlantıyı kes"
+  ile veya farklı bir kullanıcı aynı hesapta bağlantı kurduğunda silinir.
+- **Modül geri bağlantıları tamamen kaldırıldı**: Dosya Modülü ve Damga Vergisi Hesaplama
+  sayfalarındaki "← Anasayfa'ya dön" bağlantısı kaldırıldı; gezinme anasayfadaki modül
+  kartlarıyla yapılır.
+
+### Düzeltilen
+
+- `GoogleDriveService.info` artık düzgün bir readonly signal; oturum düşmesi durumunda yalnızca
+  bellek içi durum (token, bilgi, durum) sıfırlanıyor.
+
 ## [0.0.23] - 2026-11-24
 
 ### Değiştirilen
@@ -14,7 +32,6 @@ istediğinde değiştirilir.
 - **Modül geri bağlantısı sadeleştirildi**: Dosya Modülü ve Damga Vergisi Hesaplama sayfalarındaki
   "← Giriş sayfasına dön" bağlantısı kaldırıldı; her iki modülde de tek bağlantı
   ("← Anasayfa'ya dön") gösteriliyor.
-
 
 ## [0.0.22] - 2026-11-24
 

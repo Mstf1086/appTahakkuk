@@ -63,23 +63,30 @@ export class GoogleDriveService {
   // Erişim token'ı yalnızca bellekte tutulur, kalıcı saklanmaz. Sinyal olması
   // "oturum hazır" bilgisinin şablonda anında güncellenmesini sağlar.
   private readonly accessTokenSignal = signal<string | null>(null);
+  private readonly infoSignal = signal<DriveLinkInfo | null>(null);
 
   readonly isConfigured = Boolean(environment.google.clientId);
   readonly status = this.statusSignal.asReadonly();
   readonly busy = this.busySignal.asReadonly();
   readonly error = this.errorSignal.asReadonly();
-  readonly info = signal<DriveLinkInfo | null>(null);
-  readonly isLinked = computed(() => this.status() === 'linked' && this.info() !== null);
+  readonly info = this.infoSignal.asReadonly();
+  readonly isLinked = computed(
+    () => this.status() === 'linked' && this.infoSignal() !== null,
+  );
   readonly hasSessionToken = computed(() => this.accessTokenSignal() !== null);
 
   constructor(auth: AuthService, private readonly logger: ErrorLogger) {
     this.auth = auth;
     void auth.waitForAuthState().then(() => this.restore());
-    // Oturum kapandığında (çıkış veya oturum düşmesi) bağlantı durumu ve bilgisi sıfırlanır;
-    // tarayıcıdaki bağlantı kaydı AuthService tarafından temizlenir.
+    // Oturum kapandığında bellek içi token düşürülür; bağlantı bilgisi (localStorage)
+    // bilinçli olarak korunur: kullanıcı yeniden giriş yaptığında bağlantı yeniden
+    // kurulmadan kaldığı yerden devam edebilir (connect() olmadan).
     effect(() => {
       if (!this.auth.user()) {
-        this.disconnect();
+        this.accessTokenSignal.set(null);
+        this.statusSignal.set('disconnected');
+        this.errorSignal.set('');
+        this.infoSignal.set(null);
       }
     });
   }
@@ -123,7 +130,7 @@ export class GoogleDriveService {
         connectedAt: new Date().toISOString(),
       };
 
-      this.info.set(info);
+      this.infoSignal.set(info);
       this.statusSignal.set('linked');
       // Bağlantı bilgisi oturum boyunca (sekmeler arası ve sayfa yenilemede) açık kalsın diye
       // localStorage'da tutulur; çıkışta AuthService tarafından silinir. Token saklanmaz.
@@ -140,7 +147,7 @@ export class GoogleDriveService {
   disconnect(): void {
     this.accessTokenSignal.set(null);
     localStorage.removeItem(STORAGE_KEY);
-    this.info.set(null);
+    this.infoSignal.set(null);
     this.errorSignal.set('');
     this.statusSignal.set('disconnected');
   }
@@ -153,7 +160,7 @@ export class GoogleDriveService {
     try {
       const info = JSON.parse(raw) as DriveLinkInfo;
       if (info.uid && this.auth.user()?.uid === info.uid) {
-        this.info.set(info);
+        this.infoSignal.set(info);
         this.statusSignal.set('linked');
       } else {
         localStorage.removeItem(STORAGE_KEY);
