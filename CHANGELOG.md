@@ -7,6 +7,15 @@ sürümler [Semantic Versioning](https://semver.org/lang/tr/) kurallarına uyar.
 son bileşeni bir artırılır (`0.0.1` → `0.0.2`); `0.0` (major.minor) kısmı yalnızca proje sahibi
 istediğinde değiştirilir.
 
+## [0.0.23] - 2026-11-24
+
+### Değiştirilen
+
+- **Modül geri bağlantısı sadeleştirildi**: Dosya Modülü ve Damga Vergisi Hesaplama sayfalarındaki
+  "← Giriş sayfasına dön" bağlantısı kaldırıldı; her iki modülde de tek bağlantı
+  ("← Anasayfa'ya dön") gösteriliyor.
+
+
 ## [0.0.22] - 2026-11-24
 
 ### Eklenen
