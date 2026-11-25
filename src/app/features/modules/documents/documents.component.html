@@ -33,23 +33,16 @@
     >
       Sil
     </button>
-    <button
-      type="button"
-      class="action action--primary"
-      (click)="saveToDrive()"
-      [disabled]="drive.busy() || records().length === 0"
-    >
-      Drive'a Kaydet
-    </button>
-    <button type="button" class="action" (click)="loadFromDrive()" [disabled]="drive.busy()">
-      Drive'dan Yükle
-    </button>
     @if (user() && (!drive.isLinked() || !drive.hasSessionToken())) {
       <button type="button" class="action" (click)="connectDrive()" [disabled]="drive.busy()">
         Google Drive'a bağlan
       </button>
     }
   </div>
+  <p class="table-note">
+    Kayıtlar Google Drive'daki "dosyalar" tablosuna otomatik yazılır; ekleme, düzenleme ve
+    silme işlemleri anında yansır.
+  </p>
 
   @if (drive.error()) {
     <p class="form-error">{{ drive.error() }}</p>
@@ -59,6 +52,9 @@
   }
   @if (saveError()) {
     <p class="form-error">{{ saveError() }}</p>
+  }
+  @if (syncError()) {
+    <p class="form-error">{{ syncError() }}</p>
   }
 
   @if (records().length === 0) {
@@ -75,6 +71,7 @@
             <th scope="col">Usul detayı</th>
             <th scope="col">Alım tarihi</th>
             <th scope="col">Durum</th>
+            <th scope="col">Sözleşme</th>
           </tr>
         </thead>
         <tbody>
@@ -94,13 +91,24 @@
                   <span class="badge badge--drive">Drive</span>
                 }
               </td>
+              <td>
+                <button
+                  type="button"
+                  class="action action--small"
+                  [disabled]="!record.recordNumber"
+                  [title]="record.recordNumber ? 'Bu kayda sözleşme aç' : 'Sıra No bekleniyor'"
+                  (click)="openContracts(record)"
+                >
+                  Sözleşme Aç
+                </button>
+              </td>
             </tr>
           }
         </tbody>
       </table>
     </div>
     <p class="table-note">
-      {{ pendingCount() }} kayıt Drive'a kaydedilmeyi bekliyor.
+      Kayıtlar Sıra No'ya göre sıralanır. "Sözleşme Aç" ile kayda bağlı sözleşmeleri yönetin.
     </p>
   }
 </section>

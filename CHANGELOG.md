@@ -7,6 +7,30 @@ sürümler [Semantic Versioning](https://semver.org/lang/tr/) kurallarına uyar.
 son bileşeni bir artırılır (`0.0.1` → `0.0.2`); `0.0` (major.minor) kısmı yalnızca proje sahibi
 istediğinde değiştirilir.
 
+## [0.0.26] - 2026-11-25
+
+### Eklenen
+
+- **Sözleşme Modülü** (`/modules/sozlesme/:recordNumber`): Dosya Modülü listesindeki her
+  kayıtta **"Sözleşme Aç"** düğmesi; kayda bağlı sözleşmelerin (firma adı, vergi no, sözleşme
+  tutarı, sözleşme tarihi) yönetildiği yeni herkese açık modül. Sözleşmeler `SOZ-000001`
+  biçiminde benzersiz kimlik alır, kaydın Sıra No'suyla ilişkilendirilir ve Drive'daki
+  **"sözleşmeler"** tablosuna (başlık satırıyla) otomatik yazılır; modül açıldığında tablodaki
+  mevcut sözleşmeler otomatik yüklenir. Anasayfada Dosya Modülü kartının altında tanıtım
+  metni yer alır.
+- **Google Drive otomatik bağlantı**: Kullanıcı giriş yaptığında Drive bağlantısı kendiliğinden
+  kurulur — daha önce izin verilmişse pencere açılmadan (sessiz yenileme), ilk kezse tek
+  seferlik onay penceresiyle. Profil sayfasındaki bağlan düğmesi de çalışmaya devam eder.
+
+### Değiştirilen
+
+- **Drive senkronizasyonu otomatikleşti**: Dosya Modülü'ndeki **"Drive'a Kaydet"** ve
+  **"Drive'dan Yükle"** düğmeleri kaldırıldı. Kayıtlar eklendiğinde/düzenlendiğinde/silindiğinde
+  "dosyalar" tablosu **baştan yazılarak** güncellenir (ekleme yerine tüm tablonun yeniden
+  yazımı, böylece silinen kayıtlar tabloda geride kalmaz); bağlantı kurulduğunda tablo
+  içeriği otomatik yüklenir. "Google Drive'a bağlan" düğmesi yalnızca oturum izni
+  tazelenemediğinde görünür.
+
 ## [0.0.25] - 2026-11-24
 
 ### Eklenen

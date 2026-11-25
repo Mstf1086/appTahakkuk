@@ -1,9 +1,13 @@
 import { ChangeDetectionStrategy, Component, computed, effect, inject, signal } from '@angular/core';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
-import { RouterLink } from '@angular/router';
+import { Router, RouterLink } from '@angular/router';
 import { AuthService } from '../../../core/auth.service';
 import { ErrorLogger } from '../../../core/error-logger';
-import { GoogleDriveService, toDriveErrorMessage } from '../../../core/google-drive.service';
+import {
+  DOCUMENTS_SHEET_NAME,
+  GoogleDriveService,
+  toDriveErrorMessage,
+} from '../../../core/google-drive.service';
 import { SeoService } from '../../../core/seo.service';
 import { DocumentsService } from './documents.service';
 import {
@@ -18,7 +22,6 @@ import {
   USULU_OPTIONS,
   Usulu,
   fromSheetRow,
-  toSheetRow,
   turuLabel,
   usulDetayiLabel,
   usuluLabel,
@@ -35,6 +38,7 @@ type SelectAction = 'edit' | 'delete';
   styleUrl: './documents.component.css',
 })
 export class DocumentsComponent {
+  private readonly router = inject(Router);
   private readonly formBuilder = inject(FormBuilder);
   private readonly authService = inject(AuthService);
   private readonly seoService = inject(SeoService);
@@ -44,7 +48,7 @@ export class DocumentsComponent {
 
   readonly user = this.authService.user;
   readonly records = this.documents.records;
-  readonly pendingCount = this.documents.pendingExportCount;
+  readonly syncError = this.documents.syncError;
 
   readonly turuOptions = TURU_OPTIONS;
   readonly usuluOptions = USULU_OPTIONS;
@@ -214,6 +218,15 @@ export class DocumentsComponent {
     }
   }
 
+  // Dosya kaydı için sözleşme modülünü açar; Sıra No parametre olarak taşınır.
+  openContracts(record: DocumentRecord): void {
+    if (!record.recordNumber) {
+      this.saveError.set('Bu kaydın Sıra No bilgisi yok; sözleşme açılamaz.');
+      return;
+    }
+    void this.router.navigate(['/modules/sozlesme', record.recordNumber]);
+  }
+
   // Drive'daki "dosyalar" tablosundaki kayıtları okur ve listeye ekler (yinilenenler atlanır).
   async loadFromDrive(): Promise<void> {
     this.saveMessage.set('');
@@ -229,13 +242,16 @@ export class DocumentsComponent {
         // Bağlantı bu akışta kuruldu; otomatik yükleme ayrıca tetiklenmez.
         this.driveAutoLoaded = true;
       }
-      const rows = await this.drive.loadSheetRows([...DOCUMENT_SHEET_HEADERS]);
+      const rows = await this.drive.loadSheetRows(DOCUMENTS_SHEET_NAME, [
+        ...DOCUMENT_SHEET_HEADERS,
+      ]);
       const loaded = rows
         .map((row) => fromSheetRow(row))
         .filter((record): record is DocumentRecord => record !== null);
 
       if (loaded.length === 0) {
         this.saveMessage.set('Drive\'daki "dosyalar" tablosunda listelenecek kayıt yok.');
+        this.documents.requestMirror();
         return;
       }
 
@@ -246,41 +262,13 @@ export class DocumentsComponent {
           ? 'Drive kayıtları zaten listede; yinelenen satır eklenmedi.'
           : `Drive'dan ${added} kayıt eklendi${skipped > 0 ? `, ${skipped} yinilenen satır atlandı` : ''}.`,
       );
+      // Tablo başlıksız/eski biçimdeyse başlık satırı ve sıra numaraları tabloya yazılsın.
+      this.documents.requestMirror();
     } catch (error) {
       this.logger.error('Drive\'dan kayıt yükleme başarısız', error);
       this.saveError.set(toDriveErrorMessage(error));
     } finally {
       this.driveLoading = false;
-    }
-  }
-
-  async saveToDrive(): Promise<void> {
-    this.saveMessage.set('');
-    this.saveError.set('');
-
-    const pending = this.records().filter((record) => !record.exportedAt);
-    if (pending.length === 0) {
-      this.saveMessage.set('Tüm kayıtlar zaten Drive tablosuna kaydedildi.');
-      return;
-    }
-
-    if (!this.drive.isLinked()) {
-      await this.drive.connect();
-      if (!this.drive.isLinked()) {
-        return;
-      }
-    }
-
-    try {
-      await this.drive.saveDocumentsToSheet({
-        header: [...DOCUMENT_SHEET_HEADERS],
-        rows: pending.map((record) => toSheetRow(record)),
-      });
-      this.documents.markExported(pending.map((record) => record.id));
-      this.saveMessage.set(`${pending.length} kayıt Drive'daki "dosyalar" tablosuna eklendi.`);
-    } catch (error) {
-      this.logger.error('Drive\'a kaydetme başarısız', error);
-      this.saveError.set(toDriveErrorMessage(error));
     }
   }
 

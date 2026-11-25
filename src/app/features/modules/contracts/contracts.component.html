@@ -1,0 +1,189 @@
+<section class="page">
+  <header class="page-header">
+    <div>
+      <h1>Sözleşme Modülü</h1>
+      <p class="subtitle">
+        Dosya kaydına bağlı sözleşmeleri yönetin. Sözleşmeler Google Drive'daki "sözleşmeler"
+        tablosuna otomatik yazılır.
+      </p>
+    </div>
+    @if (!user()) {
+      <p class="guest-note">
+        Sözleşmeleri görüntülemek ve kaydetmek için
+        <a routerLink="/login" [queryParams]="{ returnUrl: '/modules/dosya' }">giriş yapın</a>.
+      </p>
+    }
+  </header>
+
+  @if (record(); as record) {
+    <section class="record-panel">
+      <div class="record-panel-head">
+        <span class="badge badge--drive">Dosya: {{ record.recordNumber }}</span>
+        <h2>{{ record.isinAdi }}</h2>
+      </div>
+      <dl class="record-meta">
+        <div>
+          <dt>Sıra No</dt>
+          <dd>{{ record.recordNumber }}</dd>
+        </div>
+        <div>
+          <dt>Türü</dt>
+          <dd>{{ record.turu === 'mal' ? 'Mal' : record.turu === 'hizmet' ? 'Hizmet' : 'Yapım' }}</dd>
+        </div>
+        <div>
+          <dt>Usulü</dt>
+          <dd>
+            {{ record.usulu === 'ihale' ? 'İhale' : record.usulu === 'dogrudanTemin' ? 'Doğrudan Temin' : 'Diğer' }}
+          </dd>
+        </div>
+        <div>
+          <dt>Alım tarihi</dt>
+          <dd>{{ record.alimTarihi }}</dd>
+        </div>
+        @if (record.aciklama) {
+          <div>
+            <dt>Açıklama</dt>
+            <dd>{{ record.aciklama }}</dd>
+          </div>
+        }
+      </dl>
+    </section>
+  } @else {
+    <p class="empty-state">
+      Bu adres bir dosya kaydına işaret etmiyor. Dosya Modülü'nden bir kayıt için
+      "Sözleşme Aç" düğmesini kullanın.
+    </p>
+  }
+
+  @if (drive.error()) {
+    <p class="form-error">{{ drive.error() }}</p>
+  }
+  @if (saveError()) {
+    <p class="form-error">{{ saveError() }}</p>
+  }
+  @if (saveMessage()) {
+    <p class="form-success">{{ saveMessage() }}</p>
+  }
+
+  @if (user() && record()) {
+    <div class="menu-bar">
+      <button
+        type="button"
+        class="action action--primary"
+        (click)="openNewContract()"
+        [disabled]="loading()"
+      >
+        Yeni sözleşme
+      </button>
+      @if (!drive.isLinked() || !drive.hasSessionToken()) {
+        <button type="button" class="action" (click)="loadFromDrive()" [disabled]="loading()">
+          Google Drive'a bağlan
+        </button>
+      }
+    </div>
+
+    @if (contracts().length === 0) {
+      <p class="empty-state">Bu kayda ait sözleşme yok. "Yeni sözleşme" ile ekleyin.</p>
+    } @else {
+      <div class="table-wrap">
+        <table class="records">
+          <thead>
+            <tr>
+              <th scope="col">Sözleşme ID</th>
+              <th scope="col">Sıra No</th>
+              <th scope="col">Firma adı</th>
+              <th scope="col">Vergi no</th>
+              <th scope="col">Sözleşme tutarı</th>
+              <th scope="col">Sözleşme tarihi</th>
+              <th scope="col">İşlem</th>
+            </tr>
+          </thead>
+          <tbody>
+            @for (contract of contracts(); track contract.id) {
+              <tr>
+                <td>{{ contract.contractId }}</td>
+                <td>{{ contract.recordNumber }}</td>
+                <td>{{ contract.firmaAdi }}</td>
+                <td>{{ contract.vergiNo }}</td>
+                <td>{{ tutarLabel(contract.tutar) }}</td>
+                <td>{{ contract.sozlesmeTarihi }}</td>
+                <td>
+                  <button
+                    type="button"
+                    class="action action--small"
+                    (click)="openDeleteModal(contract.id)"
+                  >
+                    Sil
+                  </button>
+                </td>
+              </tr>
+            }
+          </tbody>
+        </table>
+      </div>
+    }
+  }
+</section>
+
+@if (modal() !== 'closed' && record()) {
+  <div class="modal-backdrop" (click)="closeModal()">
+    <div
+      class="modal"
+      role="dialog"
+      aria-modal="true"
+      [attr.aria-label]="modal() === 'form' ? 'Yeni sözleşme' : 'Sözleşmeyi sil'"
+      (click)="$event.stopPropagation()"
+    >
+      <header class="modal-header">
+        <h2>{{ modal() === 'form' ? 'Yeni sözleşme' : 'Sözleşmeyi sil' }}</h2>
+        <button type="button" class="modal-close" (click)="closeModal()" aria-label="Kapat">
+          &times;
+        </button>
+      </header>
+
+      @if (modal() === 'form') {
+        <form class="modal-body" [formGroup]="form" novalidate>
+          <label for="firmaAdi">Firma adı</label>
+          <input id="firmaAdi" type="text" formControlName="firmaAdi" autocomplete="off" />
+          @if (formErrors()['firmaAdi']) {
+            <p class="field-error">{{ formErrors()['firmaAdi'] }}</p>
+          }
+
+          <label for="vergiNo">Vergi no</label>
+          <input id="vergiNo" type="text" inputmode="numeric" formControlName="vergiNo" autocomplete="off" />
+          @if (formErrors()['vergiNo']) {
+            <p class="field-error">{{ formErrors()['vergiNo'] }}</p>
+          }
+
+          <label for="tutar">Sözleşme tutarı</label>
+          <input id="tutar" type="text" inputmode="decimal" formControlName="tutar" autocomplete="off" />
+          @if (formErrors()['tutar']) {
+            <p class="field-error">{{ formErrors()['tutar'] }}</p>
+          }
+
+          <label for="sozlesmeTarihi">Sözleşme tarihi</label>
+          <input id="sozlesmeTarihi" type="date" formControlName="sozlesmeTarihi" />
+          @if (formErrors()['sozlesmeTarihi']) {
+            <p class="field-error">{{ formErrors()['sozlesmeTarihi'] }}</p>
+          }
+        </form>
+        <footer class="modal-footer">
+          <button type="button" class="action" (click)="closeModal()">İptal</button>
+          <button type="button" class="action action--primary" (click)="submitForm()">
+            Kaydet
+          </button>
+        </footer>
+      } @else {
+        <div class="modal-body">
+          <p class="modal-hint">Seçili sözleşme kalıcı olarak silinecek. Onaylıyor musunuz?</p>
+        </div>
+        <footer class="modal-footer">
+          <button type="button" class="action" (click)="closeModal()">İptal</button>
+          <button type="button" class="action action--primary" (click)="confirmDelete()">
+            Seçili sözleşmeyi sil
+          </button>
+        </footer>
+      }
+    </div>
+  </div>
+}

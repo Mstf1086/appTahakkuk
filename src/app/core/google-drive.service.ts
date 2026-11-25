@@ -16,7 +16,8 @@ export interface DriveLinkInfo {
 
 const STORAGE_KEY = 'tahakkuk.driveLink';
 const FOLDER_NAME = 'tahakkuk.web.app';
-const SHEET_NAME = 'dosyalar';
+export const DOCUMENTS_SHEET_NAME = 'dosyalar';
+export const CONTRACTS_SHEET_NAME = 'sözleşmeler';
 const SHEET_MIME_TYPE = 'application/vnd.google-apps.spreadsheet';
 const CONSENT_TOKEN_TIMEOUT = 45000;
 const SILENT_TOKEN_TIMEOUT = 15000;
@@ -169,6 +170,45 @@ export class GoogleDriveService {
       this.logger.warn('Drive bağlantı bilgisi bozuk, temizlendi', error);
       localStorage.removeItem(STORAGE_KEY);
     }
+  }
+
+  // Oturum açıldığında çağrılır: bağlantı kaydı varsa izni sessizce yeniler (her seferinde
+  // Google penceresi açılmaz), kayıt yoksa ilk kez için etkileşimli bağlantı kurar.
+  async connectAfterSignIn(): Promise<void> {
+    const user = this.auth.user();
+    if (!user || this.busySignal() || this.accessTokenSignal() !== null) {
+      return;
+    }
+    await this.auth.waitForAuthState();
+    if (this.auth.user()?.uid !== user.uid) {
+      return;
+    }
+    if (this.restoreStoredLink(user.uid)) {
+      // Kayıt var: yalnızca bellek içi token'ı sessizce yenilemeyi dener.
+      if (await this.silentConnect()) {
+        return;
+      }
+    }
+    await this.connect();
+  }
+
+  private restoreStoredLink(uid: string): boolean {
+    const raw = localStorage.getItem(STORAGE_KEY);
+    if (!raw) {
+      return false;
+    }
+    try {
+      const info = JSON.parse(raw) as DriveLinkInfo;
+      if (info.uid === uid && info.folderId) {
+        this.infoSignal.set(info);
+        this.statusSignal.set('linked');
+        return true;
+      }
+    } catch (error) {
+      this.logger.warn('Drive bağlantı bilgisi bozuk, temizlendi', error);
+      localStorage.removeItem(STORAGE_KEY);
+    }
+    return false;
   }
 
   // Sayfa yenilemeden sonra bellek içi token kaybolduğunda, kullanıcıya bir şey
@@ -363,33 +403,53 @@ export class GoogleDriveService {
     };
   }
 
-  // Drive'da "dosyalar" tablosunu (Google Sheets) bulur, yoksa tahakkuk.web.app klasörü içinde
-  // oluşturur; satırlar tabloya eklenir. Yeni tablo oluşturulduğunda başlık satırı da yazılır.
-  // Token yalnızca bellekte tutulur, kalıcı saklanmaz.
-  async saveDocumentsToSheet(options: {
-    header: string[];
-    rows: string[][];
-  }): Promise<{ spreadsheetId: string; spreadsheetUrl: string; appendedRows: number }> {
-    if (options.rows.length === 0) {
-      throw new Error('SHEET_NO_ROWS');
-    }
-
-    // Bellekte token yoksa (sayfa yenilemesi sonrası) kullanıcı eylemiyle açılan
-    // kaydetme akışında yetkilendirme penceresi yeniden gösterilir.
-    let token = this.accessTokenSignal();
-    if (token === null) {
-      token = await this.requestToken();
-      this.accessTokenSignal.set(token);
-    }
+  // "dosyalar"/"sözleşmeler" tablosunu (Google Sheets) bulur, yoksa tahakkuk.web.app
+  // klasörü içinde oluşturur; başlık satırı ve tüm satırları baştan yazar. Böylece
+  // ekleme/düzenleme/silme işlemleri tabloya birebir yansır.
+  async writeSheet(sheetName: string, header: string[], rows: string[][]): Promise<void> {
+    const token = await this.resolveSheetToken();
     const folder = await this.ensureFolder(token);
-    const sheet = await this.findOrCreateSheet(token, folder.id);
-    const appendedRows = await this.appendSheetRows(token, sheet.id, sheet.isNew, options);
+    const sheet = await this.findOrCreateSheet(token, folder.id, sheetName);
 
-    return {
-      spreadsheetId: sheet.id,
-      spreadsheetUrl: sheet.webViewLink,
-      appendedRows,
-    };
+    // Önce mevcut içerik temizlenir; yoksa silinen satırlar tabloda geride kalır.
+    await this.clearSheetValues(token, sheet.id);
+
+    const padded = rows.map((row) => [
+      ...row,
+      ...new Array(Math.max(0, header.length - row.length)).fill(''),
+    ]);
+    const values = [header, ...padded];
+    const response = await fetch(
+      `https://sheets.googleapis.com/v4/spreadsheets/${sheet.id}/values/A1?valueInputOption=RAW`,
+      {
+        method: 'PUT',
+        headers: {
+          Authorization: `Bearer ${token}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ range: 'A1', majorDimension: 'ROWS', values }),
+      },
+    );
+    if (!response.ok) {
+      throw new Error(await this.sheetErrorCode(response, 'SHEET_WRITE_ERROR'));
+    }
+  }
+
+  private async clearSheetValues(token: string, spreadsheetId: string): Promise<void> {
+    const response = await fetch(
+      `https://sheets.googleapis.com/v4/spreadsheets/${spreadsheetId}/values/A:ZZ:clear`,
+      {
+        method: 'POST',
+        headers: {
+          Authorization: `Bearer ${token}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({}),
+      },
+    );
+    if (!response.ok) {
+      throw new Error(await this.sheetErrorCode(response, 'SHEET_CLEAR_ERROR'));
+    }
   }
 
   // Tablo okuma/yazma öncesi token: bellekte varsa kullanılır; yoksa sessizce
@@ -409,10 +469,10 @@ export class GoogleDriveService {
   // "dosyalar" tablosundaki veri satırlarını okur. Aralık açık uçlu yazılır: A1 notasyonunda
   // "A1" tek bir hücreye karşılık geldiği için sekmeli aralık kullanılır. İlk satır başlık
   // satırıysa atlanır; tablo yoksa boş dizi döner.
-  async loadSheetRows(header: string[] = []): Promise<string[][]> {
+  async loadSheetRows(sheetName: string, header: string[] = []): Promise<string[][]> {
     const token = await this.resolveSheetToken();
     const folder = await this.ensureFolder(token);
-    const sheet = await this.findSheet(token, folder.id);
+    const sheet = await this.findSheet(token, folder.id, sheetName);
     if (!sheet) {
       return [];
     }
@@ -433,9 +493,10 @@ export class GoogleDriveService {
   private async findSheet(
     token: string,
     folderId: string,
+    sheetName: string,
   ): Promise<{ id: string; webViewLink: string } | null> {
     const query = encodeURIComponent(
-      `name = '${SHEET_NAME}' and mimeType = '${SHEET_MIME_TYPE}' and trashed = false and '${folderId}' in parents`,
+      `name = '${sheetName}' and mimeType = '${SHEET_MIME_TYPE}' and trashed = false and '${folderId}' in parents`,
     );
     const found = await fetch(
       `https://www.googleapis.com/drive/v3/files?q=${query}&fields=files(id,webViewLink)&pageSize=1`,
@@ -460,8 +521,9 @@ export class GoogleDriveService {
   private async findOrCreateSheet(
     token: string,
     folderId: string,
+    sheetName: string,
   ): Promise<{ id: string; webViewLink: string; isNew: boolean }> {
-    const existing = await this.findSheet(token, folderId);
+    const existing = await this.findSheet(token, folderId, sheetName);
     if (existing) {
       return { ...existing, isNew: false };
     }
@@ -473,7 +535,7 @@ export class GoogleDriveService {
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        name: SHEET_NAME,
+        name: sheetName,
         mimeType: SHEET_MIME_TYPE,
         parents: [folderId],
       }),
@@ -489,37 +551,6 @@ export class GoogleDriveService {
       webViewLink: created.webViewLink ?? `https://docs.google.com/spreadsheets/d/${created.id}`,
       isNew: true,
     };
-  }
-
-  private async appendSheetRows(
-    token: string,
-    spreadsheetId: string,
-    isNewSheet: boolean,
-    options: { header: string[]; rows: string[][] },
-  ): Promise<number> {
-    const values = isNewSheet ? [options.header, ...options.rows] : options.rows;
-    // RAW seçilir: metin ve tarih değerleri ayrıştırılmaz, okumada yazılan biçim korunur.
-    const response = await fetch(
-      `https://sheets.googleapis.com/v4/spreadsheets/${spreadsheetId}/values/A1:append?valueInputOption=RAW&insertDataOption=INSERT_ROWS`,
-      {
-        method: 'POST',
-        headers: {
-          Authorization: `Bearer ${token}`,
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          range: 'A1',
-          majorDimension: 'ROWS',
-          values,
-        }),
-      },
-    );
-
-    if (!response.ok) {
-      throw new Error(await this.sheetErrorCode(response, 'SHEET_APPEND_ERROR'));
-    }
-
-    return values.length;
   }
 
   private async sheetErrorCode(response: Response, fallback: string): Promise<string> {
@@ -584,11 +615,13 @@ export function toDriveErrorMessage(error: unknown): string {
         'deneyin; sorun sürerse Cloud Console → APIs & Services → Library → "Google Sheets API" ' +
         'etkin mi kontrol edin.'
       );
-    case 'SHEET_APPEND_ERROR':
+    case 'SHEET_WRITE_ERROR':
       return (
-        'Drive içindeki "dosyalar" tablosuna yazılamadı. Tablo silinmiş veya erişim ' +
-        'kısıtlanmış olabilir; tekrar deneyin.'
+        'Drive içindeki tabloya yazılamadı. Tablo silinmiş veya erişim kısıtlanmış ' +
+        'olabilir; tekrar deneyin.'
       );
+    case 'SHEET_CLEAR_ERROR':
+      return 'Drive içindeki tablo güncellenemedi (temizleme adımı başarısız). Tekrar deneyin.';
     case 'SHEET_LOOKUP_ERROR':
       return (
         'Drive\'daki "dosyalar" tablosu sorgulanamadı. Ağ bağlantınızı kontrol edip tekrar ' +

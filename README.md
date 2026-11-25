@@ -24,19 +24,21 @@ Hesaplama** modülü ise misafirler tarafından da giriş yapılmadan kullanıla
 - **Korumalı alan**: `/profile` rotası `authGuard` ile korunur ve menülerde yalnızca giriş yapmış
   kullanıcılara gösterilir; oturum yoksa `/login?returnUrl=...` adresine yönlendirilir.
 - **Misafir erişimi**: `/` (varsayılan sayfa) ve `/anasayfa` misafirlere açıktır; anasayfada
-  modül kartları görünür, giriş bağlantısı üst menüde bulunur. `/modules/damga-vergisi-modulu`
-  ve `/modules/dosya` de herkese açıktır; modüller shell içinde açıldığı için üst menü ve footer
+  modül kartları görünür, giriş bağlantısı üst menüde bulunur. `/modules/damga-vergisi-modulu`,
+  `/modules/dosya` ve `/modules/sozlesme/:recordNumber` de herkese açıktır; modüller shell içinde
+  açıldığı için üst menü ve footer
   misafirler için de görünür.
-- **Modül kategorileri**: anasayfada **Ana Modüller** (Dosya Modülü) ve **Yardımcı Modüller**
-  (Damga Vergisi Hesaplama) ayrı kartlarda listelenir.
+- **Modül kategorileri**: anasayfada **Ana Modüller** (Dosya Modülü, altında Sözleşme Modülü
+  tanıtımı) ve **Yardımcı Modüller** (Damga Vergisi Hesaplama) ayrı kartlarda listelenir.
 - **Damga Vergisi Hesaplama modülü**: KDV hariç fatura bedelinden damga vergisi kesintisi,
   KDV dahil fatura bedeli, tevkifat kesintisi ve ödenecek tutar hesaplanır. Modül yalnızca
   anasayfadaki yardımcı modül kartı üzerinden açılır; menülerde ve giriş ekranında listelenmez.
-- **Google Drive bağlantısı**: giriş yapmış kullanıcı Google hesabıyla yetki verir; Drive'ında
-  `tahakkuk.web.app` klasörü otomatik oluşturulur. Bağlantı bilgisi (token hariç) oturumunuz
-  açık olduğu sürece tarayıcınızda tutulur; sayfa yenilendiğinde veya yeni sekme açtığınızda
-  bağlantı korunur, çıkışta silinir. Durum ve bağlı hesap bilgileri profil sayfasındaki
-  "Bağlı hesaplar" panelinde görünür.
+- **Google Drive bağlantısı**: kullanıcı **giriş yaptığında bağlantı kendiliğinden kurulur** —
+  daha önce izin verilmişse pencere açılmadan (sessiz yenileme), ilk kezse tek seferlik onay
+  penceresiyle. Drive'ında `tahakkuk.web.app` klasörü otomatik oluşturulur. Bağlantı bilgisi
+  (token hariç) tarayıcınızda kalıcıdır; sayfa yenildiğinde veya yeni sekme açıldığında
+  bağlantı korunur, çıkışta durum sıfırlanır (kayıt silinmez). Durum ve bağlı hesap bilgileri
+  profil sayfasındaki "Bağlı hesaplar" panelinde görünür.
 - **Oturum güvenliği**: 30 dakika boyunca işlem yapılmazsa oturum güvenliğiniz için otomatik
   kapatılır; fare/klavye/dokunma etkileşimi süreyi baştan başlatır.
 - **Hukuki sayfalar**: `/policy` (gizlilik politikası) ve `/terms` (kullanım koşulları) misafirler
@@ -126,8 +128,10 @@ profil sayfasından Google Drive'a bağlanılabilir.
 
 ## Google Drive yapılandırması
 
-Profil sayfasındaki **Google Drive’a bağlan** düğmesi Google Identity Services (GIS) ile OAuth 2.0
-erişim token'ı alır ve Drive API v3 ile `tahakkuk.web.app` klasörünü oluşturur.
+Kullanıcı **giriş yaptığında** uygulama Google Identity Services (GIS) ile OAuth 2.0 erişim
+token'ı alır ve Drive API v3 ile `tahakkuk.web.app` klasörünü oluşturur. Daha önce izin
+verilmişse pencere açılmadan sessiz yenileme yapılır; ilk kezte tek seferlik onay penceresi
+açılır. Profil sayfasındaki **Google Drive'a bağlan** düğmesi de aynı akışı kurar.
 
 1. [Google Cloud Console](https://console.cloud.google.com/) → yeni veya mevcut bir proje seçin.
 2. **APIs & Services → Library** → **Google Drive API** ve **Google Sheets API**
@@ -151,6 +155,10 @@ kullanıcı çıkış yapana kadar `localStorage` üzerinde tutulur — sayfa ye
 sekmede bağlantı korunur. Çıkışta (elle veya 30 dakika işlem yapılmaması sonrası otomatik)
 uygulamaya ait tüm tarayıcı kayıtları (`tahakkuk.` anahtarları) ve Drive bağlantı durumu
 temizlenir; erişim token'ı hiçbir zaman saklanmaz.
+
+Uygulama Drive'ında iki Google Sheets tablosu tutulur: Dosya Modülü için **dosyalar**,
+Sözleşme Modülü için **sözleşmeler**. Her ikisi de değişiklikte başlık satırıyla baştan
+yazılır (`GoogleDriveService.writeSheet`), okuma `loadSheetRows` ile yapılır.
 
 Consent screen doğrulamasında istenen bağlantılar uygulama içinde yayınlanır:
 `https://tahakkuk.web.app/policy` (gizlilik politikası) ve
@@ -188,6 +196,10 @@ Uygulamada:
 - `/login` → giriş (e-posta/şifre veya Google) ve hesap oluşturma ekranı.
 - `/modules/damga-vergisi-modulu` → giriş gerektirmeyen damga vergisi hesaplama modülü (üst menü
   ve footer görünür, menülerde listelenmez).
+- `/modules/dosya` → giriş gerektirmeyen dosya modülü (üst menü ve footer görünür, menülerde
+  listelenmez).
+- `/modules/sozlesme/:recordNumber` → dosya kaydına bağlı sözleşme modülü; erişim Dosya
+  Modülü'ndeki "Sözleşme Aç" düğmesiyledir (menülerde listelenmez).
 - `/profile` → giriş yapmış kullanıcıların profil bilgileri (korumalı; menüde yalnızca giriş
   yapmışlara görünür).
 - `/policy` → gizlilik politikası (herkese açık; OAuth doğrulamasında kullanılan adres).
@@ -281,7 +293,8 @@ src/
 │   │   ├── profile/*              # Profil düzenleme + bağlı hesaplar (Google Drive)
 │   │   ├── legal/*                 # Gizlilik politikasi (/policy) ve kullanim koşullari (/terms)
 │   │   ├── modules/stamp-tax/*    # Damga vergisi hesaplama (herkese açık)
-│   │   └── modules/documents/*    # Dosya modülü: kayıt listesi, popup menüler, Drive sheet
+│   │   ├── modules/documents/*    # Dosya modülü: kayıt listesi, popup menüler, Drive sheet
+│   │   └── modules/contracts/*    # Sözleşme modülü: kayda bağlı sözleşmeler, Drive sheet
 │   ├── app.routes.ts              # Rotalar (public + korumalı)
 │   └── app.config.ts              # Provider'lar, Türkçe locale
 ├── environments/environment.ts    # .env'den üretilir (commit edilmez)
@@ -295,10 +308,10 @@ src/
 İş kayıtlarını yönetmek ve Google Drive'a aktarmak için:
 
 - **Kayıt listesi**: kayıtlar tablo halinde listelenir (işin adı, türü, usulü, usul detayı, alım
-  tarihi, durum).
-- **Menu**: `Yeni kayıt`, `Düzenle`, `Sil`, `Drive'a Kaydet`, `Drive'dan Yükle` ve gerektiğinde
-  `Google Drive'a bağlan` düğmeleri (düğme, bağlantı yokken veya oturum izni tazelenemediğinde
-  görünür).
+  tarihi, durum, Sıra No). Her kayıt satırında **"Sözleşme Aç"** düğmesi o kaydın sözleşme
+  listesini açar.
+- **Menu**: `Yeni kayıt`, `Düzenle`, `Sil` ve gerektiğinde `Google Drive'a bağlan` düğmeleri
+  (bağlan düğmesi yalnızca oturum izni tazelenemediğinde görünür).
 - **Popup akışı**: `Düzenle` ve `Sil` bir seçim penceresi açar; listeden kayıt seçilip onay
   verdiğinizde işlem uygulanır. `Yeni kayıt` ve düzenleme formu doğrulama şemasına
   (`src/app/features/modules/documents/document.schema.json`) göre kontrol edilir; hatalı alanlar
@@ -306,15 +319,36 @@ src/
 - **Alanlar**: işin adı, türü (Mal/Hizmet/Yapım), usulü (İhale/Doğrudan Temin/Diğer) ve usule
   bağlı alt seçenekler (ihale: Açık İhale, Pazarlık 21-A/21-B/21-D; doğrudan temin:
   22A/22B/22C), alım tarihi ve isteğe bağlı açıklama.
-- **Drive'a Kaydet**: `tahakkuk.web.app` klasöründe (yoksa oluşturulur) **dosyalar** adlı tablo
-  (Google Sheets) bulunur, yoksa oluşturulur; yeni tablo oluşturulduğunda başlık satırı da
-  yazılır. Bekleyen kayıtlar tabloya eklenir ve listede "Kaydedildi" olarak işaretlenir.
-- **Drive'dan Yükle**: tablodaki veri satırları okunup listeye eklenir (aynı kayıt iki kez
-  eklenmez). Drive bağlantısı açıkken modül açıldığında satırlar otomatik yüklenir; erişim
-  token'ı sayfa yenilemesiyle kaybolduğu için servis izni sessizce yeniler (`prompt: 'none`).
-  Sessiz yenileme olmazsa "Google Drive'a bağlan" düğmesiyle yeniden bağlanmanız istenir.
+- **Otomatik Drive senkronizasyonu**: Bağlantı kurulduğunda Drive'daki **dosyalar** tablosunun
+  veri satırları otomatik yüklenir (aynı kayıt iki kez eklenmez; erişim token'ı sayfa
+  yenilemesiyle kaybolduğu için servis izni sessizce yeniler, `prompt: 'none'`). Kayıt
+  eklendiğinde, düzenlendiğinde veya silindiğinde tablo **baştan yazılır**: `tahakkuk.web.app`
+  klasöründe (yoksa oluşturulur) tablo içeriği temizlenir, başlık satırı ve tüm kayıtlar
+  güncel haliyle yazılır — böylece silinen kayıtlar tabloda geride kalmaz. Sessiz yenileme
+  olmazsa yazım atlanır ve bağlantı kurulup yüklenir.
 - **Depolama**: kayıtlar cihazdaki `localStorage` alanında (`tahakkuk.documents.v1`) tutulur ve
   hesaptan çıkış yapıldığında silinir.
+
+### Sözleşme Modülü (`/modules/sozlesme/:recordNumber`)
+
+Dosya Modülü'ndeki bir kayda bağlı sözleşmeleri yönetmek için; **herkese açıktır** fakat
+listeye girmek için dosya kaydına ihtiyaç duyduğunuzdan erişim Dosya Modülü'ndeki
+**"Sözleşme Aç"** düğmesiyledir:
+
+- **Kayıt paneli**: adresdeki Sıra No ile eşleşen dosya kaydının özeti (işin adı, türü, usulü,
+  alım tarihi) gösterilir; adres bir kayda işaret etmiyorsa yönlendirme notu görünür.
+- **Sözleşme listesi**: kayda bağlı sözleşmeler tablo halinde listelenir (Sözleşme ID, firma
+  adı, vergi no, tutar, tarih). Sözleşmeler `SOZ-000001` biçiminde benzersiz kimlik alır ve
+  Sıra No'ya göre artan sıralanır.
+- **Menu**: `Yeni sözleşme`, `Sil` ve gerektiğinde `Google Drive'a bağlan` düğmeleri.
+- **Sözleşme formu**: firma adı, vergi no (10-11 haneli rakam), sözleşme tutarı (Türkçe sayı
+  biçimi, örn. `12.500,75`) ve sözleşme tarihi (`YYYY-AA-GG`); hatalı alanlar form altında
+  Türkçe gösterilir.
+- **Otomatik Drive senkronizasyonu**: Modül açıldığında Drive'daki **sözleşmeler** tablosunun
+  veri satırları (başlık satırı atlanarak) otomatik yüklenir; sözleşme eklendiğinde veya
+  silindiğinde tablo, Dosya Modülü'ndeki gibi başlık satırıyla **baştan yazılır**.
+- **Depolama**: sözleşmeler tarayıcıda kalıcı olarak tutulmaz; tablo okuması Drive
+  üzerinden yapılır, yerel liste sayfa yenilemesinde Drive'dan yeniden kurulur.
 
 ### Damga Vergisi Hesaplama (`/modules/damga-vergisi-modulu`)
 

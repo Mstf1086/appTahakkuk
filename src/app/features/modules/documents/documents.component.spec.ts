@@ -23,13 +23,7 @@ const driveStub = {
   loadSheetRows: vi.fn(async () => [] as string[][]),
   connect: vi.fn(async () => undefined),
   disconnect: vi.fn(),
-  saveDocumentsToSheet: vi.fn(
-    async (_options: { header: string[]; rows: string[][] }) => ({
-      spreadsheetId: 'sheet1',
-      spreadsheetUrl: 'https://docs.google.com/spreadsheets/d/sheet1',
-      appendedRows: 2,
-    }),
-  ),
+  writeSheet: vi.fn(async (_sheetName: string, _header: string[], _rows: string[][]) => undefined),
 };
 
 function seed(records: unknown[]): void {
@@ -73,7 +67,7 @@ const sample = {
 describe('DocumentsComponent', () => {
   beforeEach(async () => {
     localStorage.clear();
-    driveStub.saveDocumentsToSheet.mockClear();
+    driveStub.writeSheet.mockClear();
     driveStub.connect.mockClear();
     driveStub.connect.mockImplementation(async () => undefined);
     driveStub.isLinked.set(false);
@@ -91,15 +85,16 @@ describe('DocumentsComponent', () => {
     }).compileComponents();
   });
 
-  it('kayıtları tablo halinde listeler', () => {
+  it('kayıtları tablo halinde Sıra No sütunuyla listeler', () => {
     seed([sample]);
     const fixture = TestBed.createComponent(DocumentsComponent);
     fixture.detectChanges();
 
     const table = fixture.nativeElement.querySelector('.records') as HTMLTableElement;
+    expect(table.textContent).toContain('Sıra No');
+    expect(table.textContent).toContain('REC-000001');
     expect(table.textContent).toContain('Kırtasiye alımı');
     expect(table.textContent).toContain('Mal');
-    expect(fixture.nativeElement.textContent).toContain('1 kayıt Drive\'a kaydedilmeyi bekliyor');
   });
 
   it('kayıt yoksa boş durum mesajı gösterir', () => {
@@ -197,40 +192,33 @@ describe('DocumentsComponent', () => {
     expect(localStorage.getItem(STORAGE_KEY)).toBe('[]');
   });
 
-  it('Drive kaydet bekleyen kayıtları gönderir ve işaretler', async () => {
+  it('her satırda Sözleşme Aç düğmesi bulunur', () => {
     seed([sample]);
-    driveStub.isLinked.set(true);
     const fixture = TestBed.createComponent(DocumentsComponent);
     fixture.detectChanges();
 
-    clickButton(fixture, 'Drive\'a Kaydet');
-    await fixture.whenStable();
-    fixture.detectChanges();
-
-    expect(driveStub.saveDocumentsToSheet).toHaveBeenCalledTimes(1);
-    const call = driveStub.saveDocumentsToSheet.mock.calls[0]?.[0];
-    expect(call?.header).toContain('İşin Adı');
-    expect(call?.rows).toHaveLength(1);
-    expect(call?.rows[0][0]).toMatch(/^REC-\d{6}$/);
-    expect(call?.rows[0][1]).toBe('Kırtasiye alımı');
-
-    const stored = JSON.parse(localStorage.getItem(STORAGE_KEY) ?? '[]');
-    expect(stored[0].exportedAt).toBeTruthy();
-    expect(fixture.nativeElement.textContent).toContain('tablosuna eklendi');
+    const buttons = Array.from(
+      fixture.nativeElement.querySelectorAll('.records tbody button'),
+    ) as HTMLButtonElement[];
+    const contractButtons = buttons.filter((button) =>
+      button.textContent?.includes('Sözleşme Aç'),
+    );
+    expect(contractButtons).toHaveLength(1);
   });
 
-  it('kayıt yokken Drive kaydet butonu kapalıdır', () => {
+  it('Sıra No’suz eski kayda otomatik sıra no atanır', () => {
+    seed([{ ...sample, recordNumber: '' }]);
     const fixture = TestBed.createComponent(DocumentsComponent);
     fixture.detectChanges();
 
-    const button = clickButton(fixture, 'Drive\'a Kaydet');
-    expect(button.disabled).toBe(true);
-    expect(driveStub.saveDocumentsToSheet).not.toHaveBeenCalled();
+    const table = fixture.nativeElement.querySelector('.records') as HTMLTableElement;
+    expect(table.textContent).toMatch(/REC-\d{6}/);
   });
 
   it('Drive bağlantısı açıkken modül açılışında satırlar otomatik listeye eklenir', async () => {
     seed([sample]);
     driveStub.isLinked.set(true);
+    driveStub.hasSessionToken.set(true);
     driveStub.loadSheetRows.mockResolvedValue([
       ['Kırtasiye alımı', 'Mal', 'Diğer', '', '2026-01-15', ''],
       ['Yazılım geliştirme', 'Hizmet', 'İhale', 'Açık İhale', '2026-03-02', 'Açıklama metni'],
@@ -241,6 +229,9 @@ describe('DocumentsComponent', () => {
     fixture.detectChanges();
 
     expect(driveStub.loadSheetRows).toHaveBeenCalledTimes(1);
+    expect(
+      (driveStub.loadSheetRows.mock.calls as unknown as string[][])[0]?.[0],
+    ).toBe('dosyalar');
     const table = fixture.nativeElement.querySelector('.records') as HTMLTableElement;
     expect(table.textContent).toContain('Yazılım geliştirme');
     expect(table.textContent).toContain('Açık İhale');
@@ -265,31 +256,38 @@ describe('DocumentsComponent', () => {
     expect(driveStub.connect).not.toHaveBeenCalled();
   });
 
-  it('Drive\'dan Yükle bağlantı kapalıyken bağlantı kurup satırları listeye ekler', async () => {
-    seed([]);
-    driveStub.connect.mockImplementation(async () => {
-      driveStub.isLinked.set(true);
+  it('bağlantı düğmesi yalnızca bağlı ve token’lı kullanıcıda gizlenir', () => {
+    seed([sample]);
+    const user = signal<{ uid: string; email: string } | null>({
+      uid: 'u1',
+      email: 'a@b.com',
     });
-    driveStub.loadSheetRows.mockResolvedValue([
-      ['Yazılım geliştirme', 'Hizmet', 'İhale', 'Açık İhale', '2026-03-02', 'Açıklama metni'],
-    ]);
+    const localAuthStub = { user, waitForAuthState: async () => null };
+    TestBed.overrideProvider(AuthService, { useValue: localAuthStub });
+    driveStub.isLinked.set(false);
+    driveStub.hasSessionToken.set(false);
     const fixture = TestBed.createComponent(DocumentsComponent);
     fixture.detectChanges();
+    expect(
+      Array.from(fixture.nativeElement.querySelectorAll('button') as HTMLButtonElement[]).some(
+        (button) => button.textContent?.includes('Google Drive\'a bağlan'),
+      ),
+    ).toBe(true);
 
-    clickButton(fixture, 'Drive\'dan Yükle');
-    await fixture.whenStable();
+    driveStub.isLinked.set(true);
+    driveStub.hasSessionToken.set(true);
     fixture.detectChanges();
-
-    expect(driveStub.connect).toHaveBeenCalledTimes(1);
-    expect(driveStub.loadSheetRows).toHaveBeenCalledTimes(1);
-    const table = fixture.nativeElement.querySelector('.records') as HTMLTableElement;
-    expect(table.textContent).toContain('Yazılım geliştirme');
-    expect(fixture.nativeElement.textContent).toContain('Drive\'dan 1 kayıt eklendi');
+    expect(
+      Array.from(fixture.nativeElement.querySelectorAll('button') as HTMLButtonElement[]).some(
+        (button) => button.textContent?.includes('Google Drive\'a bağlan'),
+      ),
+    ).toBe(false);
   });
 
-  it('Drive\'dan Yükle yinilenen satırları atlar', async () => {
+  it('yinelenen Drive satırlarını atlar', async () => {
     seed([sample]);
     driveStub.isLinked.set(true);
+    driveStub.hasSessionToken.set(true);
     driveStub.loadSheetRows.mockResolvedValue([
       ['Kırtasiye alımı', 'Mal', 'Diğer', '', '2026-01-15', ''],
     ]);

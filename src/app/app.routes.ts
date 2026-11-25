@@ -32,6 +32,14 @@ export const routes: Routes = [
         title: 'Dosya Modülü | Tahakkuk',
       },
       {
+        path: 'modules/sozlesme/:recordNumber',
+        loadComponent: () =>
+          import('./features/modules/contracts/contracts.component').then(
+            (m) => m.ContractsComponent,
+          ),
+        title: 'Sözleşme Modülü | Tahakkuk',
+      },
+      {
         path: 'profile',
         canActivate: [authGuard],
         loadComponent: () =>

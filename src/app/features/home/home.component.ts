@@ -34,8 +34,14 @@ export class HomeComponent {
       code: 'DS',
       title: 'Dosya Modülü',
       description:
-        'İş kayıtlarını oluşturun, düzenleyin ve silin; kayıtları Google Drive\'daki "dosyalar" tablosuna kaydedin.',
+        'İş kayıtlarını oluşturun, düzenleyin ve silin; kayıtlar Google Drive\'daki "dosyalar" tablosuna otomatik yazılır.',
       path: '/modules/dosya',
+    },
+    {
+      code: 'SZ',
+      title: 'Sözleşme Modülü',
+      description:
+        'Dosya kayıtlarına bağlı sözleşmeleri yönetin; kayıtlar "sözleşmeler" tablosuna otomatik yazılır. Erişim Dosya Modülü\'ndeki "Sözleşme Aç" düğmesiyle sağlanır.',
     },
   ];
 
