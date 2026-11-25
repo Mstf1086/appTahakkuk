@@ -308,8 +308,8 @@ src/
 İş kayıtlarını yönetmek ve Google Drive'a aktarmak için:
 
 - **Kayıt listesi**: kayıtlar tablo halinde listelenir (işin adı, türü, usulü, usul detayı, alım
-  tarihi, durum, Sıra No). Her kayıt satırında **"Sözleşme Aç"** düğmesi o kaydın sözleşme
-  listesini açar.
+  tarihi, durum, DOSYA ID). Her kayıt, `DOS-000001` biçiminde benzersiz bir kimlik alır; her
+  satırda **"Sözleşme Aç"** düğmesi o kaydın sözleşme listesini açar.
 - **Menu**: `Yeni kayıt`, `Düzenle`, `Sil` ve gerektiğinde `Google Drive'a bağlan` düğmeleri
   (bağlan düğmesi yalnızca oturum izni tazelenemediğinde görünür).
 - **Popup akışı**: `Düzenle` ve `Sil` bir seçim penceresi açar; listeden kayıt seçilip onay
@@ -335,11 +335,11 @@ Dosya Modülü'ndeki bir kayda bağlı sözleşmeleri yönetmek için; **herkese
 listeye girmek için dosya kaydına ihtiyaç duyduğunuzdan erişim Dosya Modülü'ndeki
 **"Sözleşme Aç"** düğmesiyledir:
 
-- **Kayıt paneli**: adresdeki Sıra No ile eşleşen dosya kaydının özeti (işin adı, türü, usulü,
+- **Kayıt paneli**: adresdeki DOSYA ID ile eşleşen dosya kaydının özeti (işin adı, türü, usulü,
   alım tarihi) gösterilir; adres bir kayda işaret etmiyorsa yönlendirme notu görünür.
 - **Sözleşme listesi**: kayda bağlı sözleşmeler tablo halinde listelenir (Sözleşme ID, firma
   adı, vergi no, tutar, tarih). Sözleşmeler `SOZ-000001` biçiminde benzersiz kimlik alır ve
-  Sıra No'ya göre artan sıralanır.
+  DOSYA ID'ye göre artan sıralanır.
 - **Menu**: `Yeni sözleşme`, `Sil` ve gerektiğinde `Google Drive'a bağlan` düğmeleri.
 - **Sözleşme formu**: firma adı, vergi no (10-11 haneli rakam), sözleşme tutarı (Türkçe sayı
   biçimi, örn. `12.500,75`) ve sözleşme tarihi (`YYYY-AA-GG`); hatalı alanlar form altında

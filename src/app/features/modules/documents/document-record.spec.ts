@@ -120,26 +120,26 @@ describe('document-record', () => {
   });
 
   it('sheet satırı olarak kaydı geri yazar', () => {
-    const row = toSheetRow({ ...localRecord, recordNumber: 'REC-000001' });
-    expect(row[0]).toBe('REC-000001');
+    const row = toSheetRow({ ...localRecord, recordNumber: 'DOS-000001' });
+    expect(row[0]).toBe('DOS-000001');
     expect(row[1]).toBe('Kırtasiye alımı');
     expect(row[2]).toBe('Mal');
     expect(row[3]).toBe('Diğer');
     expect(row[5]).toBe('2026-01-15');
   });
 
-  it('Sıra No üretimi artan ve benzersizdir', () => {
-    expect(formatRecordNumber(1)).toBe('REC-000001');
-    expect(formatRecordNumber(42)).toBe('REC-000042');
-    expect(parseRecordNumber('REC-000007')).toBe(7);
+  it('DOSYA ID üretimi artan ve benzersizdir', () => {
+    expect(formatRecordNumber(1)).toBe('DOS-000001');
+    expect(formatRecordNumber(42)).toBe('DOS-000042');
+    expect(parseRecordNumber('DOS-000007')).toBe(7);
     expect(parseRecordNumber('')).toBeNull();
 
     const existing = [
-      { ...localRecord, recordNumber: 'REC-000003' },
-      { ...localRecord, id: 'r2', recordNumber: 'REC-000011' },
+      { ...localRecord, recordNumber: 'DOS-000003' },
+      { ...localRecord, id: 'r2', recordNumber: 'DOS-000011' },
     ];
-    expect(createRecordNumber(existing)).toBe('REC-000012');
-    expect(createRecordNumber([])).toBe('REC-000001');
+    expect(createRecordNumber(existing)).toBe('DOS-000012');
+    expect(createRecordNumber([])).toBe('DOS-000001');
   });
 
   it('numarasız eski satırlar kayda çevrilir, numaralı satırla karışmaz', () => {
@@ -148,7 +148,7 @@ describe('document-record', () => {
     expect(legacy?.recordNumber).toBeUndefined();
 
     const numbered = fromSheetRow([
-      'REC-000004',
+      'DOS-000004',
       'test',
       'Mal',
       'İhale',
@@ -156,13 +156,13 @@ describe('document-record', () => {
       '2026-11-12',
       'asd',
     ]);
-    expect(numbered?.recordNumber).toBe('REC-000004');
+    expect(numbered?.recordNumber).toBe('DOS-000004');
   });
 
-  it('birleştirme sonrası liste Sıra No’ya göre sıralanır', () => {
+  it('birleştirme sonrası liste DOSYA ID’ye göre sıralanır', () => {
     const base = { isinAdi: 'Kırtasiye alımı', turu: 'mal' as const, usulu: 'diger' as const, alimTarihi: '2026-01-15' };
-    const a = { ...base, id: 'r1', recordNumber: 'REC-000002' };
-    const b = { ...base, id: 'r2', recordNumber: 'REC-000001', isinAdi: 'Yazılım geliştirme', alimTarihi: '2026-03-02' };
+    const a = { ...base, id: 'r1', recordNumber: 'DOS-000002' };
+    const b = { ...base, id: 'r2', recordNumber: 'DOS-000001', isinAdi: 'Yazılım geliştirme', alimTarihi: '2026-03-02' };
     const c = { ...base, id: 'r3' };
     const merged = mergeSheetRecords([a, c], [b]);
     expect(merged.added).toBe(1);
@@ -170,7 +170,7 @@ describe('document-record', () => {
   });
 
   it('numaralı yerel kayıt numarasız eski satırla eşleşir ve tersi de geçerlidir', () => {
-    const local = { ...localRecord, recordNumber: 'REC-000001' };
+    const local = { ...localRecord, recordNumber: 'DOS-000001' };
     const incoming = fromSheetRow([
       'Kırtasiye alımı',
       'Mal',
@@ -183,6 +183,6 @@ describe('document-record', () => {
     const merged = mergeSheetRecords([local], [incoming]);
     expect(merged.added).toBe(0);
     expect(merged.records).toHaveLength(1);
-    expect(merged.records[0].recordNumber).toBe('REC-000001');
+    expect(merged.records[0].recordNumber).toBe('DOS-000001');
   });
 });

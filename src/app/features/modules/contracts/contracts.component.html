@@ -23,7 +23,7 @@
       </div>
       <dl class="record-meta">
         <div>
-          <dt>Sıra No</dt>
+          <dt>DOSYA ID</dt>
           <dd>{{ record.recordNumber }}</dd>
         </div>
         <div>
@@ -55,14 +55,14 @@
     </p>
   }
 
-  @if (drive.error()) {
-    <p class="form-error">{{ drive.error() }}</p>
-  }
-  @if (saveError()) {
-    <p class="form-error">{{ saveError() }}</p>
-  }
-  @if (saveMessage()) {
-    <p class="form-success">{{ saveMessage() }}</p>
+  @if (drive.error(); as driveError) {
+    <p class="form-error">{{ driveError }}</p>
+  } @else if (saveError(); as saveErrorText) {
+    <p class="form-error">{{ saveErrorText }}</p>
+  } @else if (saveMessage(); as saveMessageText) {
+    <p class="form-success">{{ saveMessageText }}</p>
+  } @else {
+    <p class="form-status form-status--idle">Bilgi mesajı burada görünür.</p>
   }
 
   @if (user() && record()) {
@@ -90,7 +90,7 @@
           <thead>
             <tr>
               <th scope="col">Sözleşme ID</th>
-              <th scope="col">Sıra No</th>
+              <th scope="col">DOSYA ID</th>
               <th scope="col">Firma adı</th>
               <th scope="col">Vergi no</th>
               <th scope="col">Sözleşme tutarı</th>

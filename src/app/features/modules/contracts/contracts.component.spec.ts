@@ -28,7 +28,7 @@ const driveStub = {
 
 const documentRecord: DocumentRecord = {
   id: 'r1',
-  recordNumber: 'REC-000001',
+  recordNumber: 'DOS-000001',
   isinAdi: 'Kırtasiye alımı',
   turu: 'mal',
   usulu: 'diger',
@@ -73,13 +73,13 @@ describe('ContractsComponent', () => {
         { provide: GoogleDriveService, useValue: driveStub },
         {
           provide: ActivatedRoute,
-          useValue: { snapshot: { paramMap: convertToParamMap({ recordNumber: 'REC-000001' }) } },
+          useValue: { snapshot: { paramMap: convertToParamMap({ recordNumber: 'DOS-000001' }) } },
         },
       ],
     }).compileComponents();
   });
 
-  it('bilinmeyen Sıra No için uyarı gösterir', () => {
+  it('bilinmeyen DOSYA ID için uyarı gösterir', () => {
     const fixture = TestBed.createComponent(ContractsComponent);
     fixture.detectChanges();
 
@@ -97,7 +97,7 @@ describe('ContractsComponent', () => {
     fixture.detectChanges();
 
     const panel = fixture.nativeElement.querySelector('.record-panel') as HTMLElement;
-    expect(panel.textContent).toContain('REC-000001');
+    expect(panel.textContent).toContain('DOS-000001');
     expect(panel.textContent).toContain('Kırtasiye alımı');
     expect(panel.textContent).toContain('Alım tarihi');
   });
@@ -113,7 +113,7 @@ describe('ContractsComponent', () => {
     driveStub.isLinked.set(true);
     driveStub.hasSessionToken.set(true);
     driveStub.loadSheetRows.mockResolvedValue([
-      ['SOZ-000001', 'REC-000001', 'ABC Ltd. Şti.', '1234567890', '1.250,75', '2026-03-15', ''],
+      ['SOZ-000001', 'DOS-000001', 'ABC Ltd. Şti.', '1234567890', '1.250,75', '2026-03-15', ''],
     ]);
     const fixture = TestBed.createComponent(ContractsComponent);
     fixture.detectChanges();
@@ -124,7 +124,7 @@ describe('ContractsComponent', () => {
     const table = fixture.nativeElement.querySelector('.records') as HTMLTableElement;
     expect(table.textContent).toContain('SOZ-000001');
     expect(table.textContent).toContain('ABC Ltd. Şti.');
-    expect(table.textContent).toContain('REC-000001');
+    expect(table.textContent).toContain('DOS-000001');
     expect(table.textContent).toContain('1.250,75 ₺');
   });
 
@@ -164,8 +164,8 @@ describe('ContractsComponent', () => {
     ];
     expect(sheetName).toBe('sözleşmeler');
     expect(header[0]).toBe('Sözleşme ID');
-    expect(header[1]).toBe('Sıra No');
-    expect(rows[0][1]).toBe('REC-000001');
+    expect(header[1]).toBe('DOSYA ID');
+    expect(rows[0][1]).toBe('DOS-000001');
   });
 
   it('geçersiz girdide hata gösterir ve yazmaz', async () => {
@@ -208,7 +208,7 @@ describe('ContractsComponent', () => {
     driveStub.isLinked.set(true);
     driveStub.hasSessionToken.set(true);
     driveStub.loadSheetRows.mockResolvedValue([
-      ['SOZ-000001', 'REC-000001', 'ABC Ltd. Şti.', '1234567890', '1.250,75', '2026-03-15', ''],
+      ['SOZ-000001', 'DOS-000001', 'ABC Ltd. Şti.', '1234567890', '1.250,75', '2026-03-15', ''],
     ]);
     const fixture = TestBed.createComponent(ContractsComponent);
     fixture.detectChanges();

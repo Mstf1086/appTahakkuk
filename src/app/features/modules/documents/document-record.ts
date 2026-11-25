@@ -205,7 +205,7 @@ export function validateDocumentRecord(
 }
 
 export const DOCUMENT_SHEET_HEADERS = [
-  'Sıra No',
+  'DOSYA ID',
   'İşin Adı',
   'Türü',
   'Usulü',
@@ -215,19 +215,19 @@ export const DOCUMENT_SHEET_HEADERS = [
   'Kaydedilme Tarihi',
 ] as const;
 
-// Drive'daki "dosyalar" tablosundaki benzersiz kayıt numarası (Sıra No sütunu).
+// Drive'daki "dosyalar" tablosundaki benzersiz kayıt kimliği (DOSYA ID sütunu).
 export type RecordNumber = string;
 
-const RECORD_NUMBER_PREFIX = 'REC-';
+const RECORD_NUMBER_PREFIX = 'DOS-';
 const RECORD_NUMBER_WIDTH = 6;
 
 export function formatRecordNumber(value: number): RecordNumber {
   return `${RECORD_NUMBER_PREFIX}${String(value).padStart(RECORD_NUMBER_WIDTH, '0')}`;
 }
 
-// "REC-000042" -> 42; tanınmayan biçim null döner.
+// "DOS-000042" -> 42; tanınmayan biçim null döner. Eski kayıtlar için REC- öneki de okunur.
 export function parseRecordNumber(value: string): number | null {
-  const match = /^REC-(\d{1,})$/.exec(value.trim());
+  const match = /^(?:DOS|REC)-(\d{1,})$/.exec(value.trim());
   return match ? Number(match[1]) : null;
 }
 
@@ -259,7 +259,7 @@ export function createRecordId(): string {
 
 // Drive'daki "dosyalar" tablosundan okunan satırı kayda çevirir. Etiketler tanınmazsa
 // veya zorunlu alanlar boşsa null döner (satır atlanır). Başlıksız eski tablolardan
-// gelen satırlar da (ilk sütun Sıra No olmadan) okunur.
+// gelen satırlar da (ilk sütun DOSYA ID olmadan) okunur.
 export function fromSheetRow(row: string[]): DocumentRecord | null {
   const cells = row.map((cell) => (cell ?? '').trim());
   const hasRecordNumber = parseRecordNumber(cells[0] ?? '') !== null;
@@ -298,7 +298,7 @@ export function fromSheetRow(row: string[]): DocumentRecord | null {
 }
 
 export function recordKey(record: DocumentRecord): string {
-  // Benzersiz kayıt numarası varsa tekilleştirme onunla yapılır; eski satırlarda
+  // Benzersiz kayıt kimliği varsa tekilleştirme onunla yapılır; eski satırlarda
   // (numarasız) ad+tarih+tür anahtarı kullanılır.
   if (record.recordNumber) {
     return `no:${record.recordNumber.toUpperCase()}`;
@@ -311,10 +311,10 @@ export function legacyRecordKey(record: DocumentRecord): string {
   return `eski:${record.isinAdi.toLowerCase()}|${record.alimTarihi}|${record.turu}`;
 }
 
-// Drive'dan okunan satırları mevcut kayıtlarla birleştirir; aynı kayıt (Sıra No ya da
+// Drive'dan okunan satırları mevcut kayıtlarla birleştirir; aynı kayıt (DOSYA ID ya da
 // numarasız eski kayıtlarda ad+tarih+tür) yerelde varsa yeniden eklenmez. Numarasız yerel
 // kayıt, numaralı Drive satırıyla eşleşirse numarası geriye dönük doldurulur. Eklenen
-// kayıt sayısını döner. Liste Sıra No'ya göre artan sıralanır; numarasız kayıtlar sona gider.
+// kayıt sayısını döner. Liste DOSYA ID'ye göre artan sıralanır; numarasız kayıtlar sona gider.
 export function mergeSheetRecords(current: DocumentRecord[], loaded: DocumentRecord[]): {
   records: DocumentRecord[];
   added: number;

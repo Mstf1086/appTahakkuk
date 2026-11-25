@@ -44,7 +44,7 @@ export class DocumentsService {
     });
 
     // Kayıtlar değiştiğinde ve Drive bağlıysa "dosyalar" tablosu baştan yazılır:
-    // başlık satırı + Sıra No'lu tüm satırlar. Manuel kaydet/yükle adımı yoktur.
+    // başlık satırı + DOSYA ID'li tüm satırlar. Manuel kaydet/yükle adımı yoktur.
     effect(() => {
       const records = this.recordsSignal();
       const ready =

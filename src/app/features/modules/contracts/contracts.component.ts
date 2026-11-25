@@ -62,7 +62,7 @@ export class ContractsComponent {
     sozlesmeTarihi: ['', Validators.required],
   });
 
-  // Adresten gelen Sıra No parametresi; dosya kaydı listeden bulunur.
+  // Adresten gelen DOSYA ID parametresi; dosya kaydı listeden bulunur.
   readonly recordNumber = computed(
     () => this.route.snapshot.paramMap.get('recordNumber') ?? '',
   );

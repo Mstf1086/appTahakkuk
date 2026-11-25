@@ -218,10 +218,10 @@ export class DocumentsComponent {
     }
   }
 
-  // Dosya kaydı için sözleşme modülünü açar; Sıra No parametre olarak taşınır.
+  // Dosya kaydı için sözleşme modülünü açar; DOSYA ID parametre olarak taşınır.
   openContracts(record: DocumentRecord): void {
     if (!record.recordNumber) {
-      this.saveError.set('Bu kaydın Sıra No bilgisi yok; sözleşme açılamaz.');
+      this.saveError.set('Bu kaydın DOSYA ID bilgisi yok; sözleşme açılamaz.');
       return;
     }
     void this.router.navigate(['/modules/sozlesme', record.recordNumber]);

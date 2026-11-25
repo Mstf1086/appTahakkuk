@@ -21,7 +21,7 @@ export const CONTRACT_FIELDS: Record<ContractField, string> = {
 
 export const CONTRACT_SHEET_HEADERS = [
   'Sözleşme ID',
-  'Sıra No',
+  'DOSYA ID',
   'Firma Adı',
   'Vergi No',
   'Sözleşme Tutarı',

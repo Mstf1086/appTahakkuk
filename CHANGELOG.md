@@ -7,6 +7,23 @@ sürümler [Semantic Versioning](https://semver.org/lang/tr/) kurallarına uyar.
 son bileşeni bir artırılır (`0.0.1` → `0.0.2`); `0.0` (major.minor) kısmı yalnızca proje sahibi
 istediğinde değiştirilir.
 
+## [0.0.27] - 2026-11-25
+
+### Eklenen
+
+- **Sabit bilgi/uyarı alanı**: Dosya Modülü ve Sözleşme Modülü'nde mesaj alanı artık her zaman
+  görünür; mesaj yokken soluk "Bilgi mesajı burada görünür." yer tutucusu gösterilir, başarı
+  veya hata mesajı geldiğinde aynı alan yerinde güncellenir (düzen kayması olmaz).
+
+### Değiştirilen
+
+- **Benzersiz kimlik biçimi `DOS-000001`**: Dosya kayıtlarının benzersiz kimliği `REC-000001`
+  yerine `DOS-000001` biçiminde üretilir; tablolardaki ve listelerdeki sütun başlığı
+  **"Sıra No"** yerine **"DOSYA ID"** oldu (Dosya Modülü listesi, sözleşme modülü paneli ve
+  Drive'daki "dosyalar"/"sözleşmeler" tablolarının ikinci sütunu). Eski `REC-` kimlikli
+  kayıtlar okunmaya ve tekilleştirmeye devam eder; tabloya bir sonraki yazımda yeni kimlikler
+  olduğu gibi korunur.
+
 ## [0.0.26] - 2026-11-25
 
 ### Eklenen

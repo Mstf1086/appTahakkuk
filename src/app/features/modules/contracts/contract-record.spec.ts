@@ -17,7 +17,7 @@ import {
 } from './contract-record';
 
 const base: Omit<ContractRecord, 'id' | 'contractId'> = {
-  recordNumber: 'REC-000001',
+  recordNumber: 'DOS-000001',
   firmaAdi: 'ABC Ltd. Şti.',
   vergiNo: '1234567890',
   tutar: '1.250,75',
@@ -35,7 +35,7 @@ describe('contract-record', () => {
   it('contractId biçimlendirme ve ayrıştırma', () => {
     expect(parseContractId('SOZ-000042')).toBe(42);
     expect(parseContractId('SOZ-42')).toBe(42);
-    expect(parseContractId('REC-000001')).toBeNull();
+    expect(parseContractId('DOS-000001')).toBeNull();
     expect(parseContractId('  SOZ-7  ')).toBe(7);
   });
 
@@ -107,17 +107,17 @@ describe('contract-record', () => {
 
   it('listContractsForRecord yalnızca verilen dosyanın sözleşmelerini döner', () => {
     const contracts = [
-      contract({ recordNumber: 'REC-000001' }),
-      contract({ recordNumber: 'REC-000002', id: 'x' }),
+      contract({ recordNumber: 'DOS-000001' }),
+      contract({ recordNumber: 'DOS-000002', id: 'x' }),
     ];
-    expect(listContractsForRecord(contracts, 'REC-000001')).toHaveLength(1);
+    expect(listContractsForRecord(contracts, 'DOS-000001')).toHaveLength(1);
     expect(listContractsForRecord(contracts, '')).toEqual([]);
   });
 
   it('toContractSheetRow başlık düzeniyle uyumlu satır üretir', () => {
     expect(CONTRACT_SHEET_HEADERS).toEqual([
       'Sözleşme ID',
-      'Sıra No',
+      'DOSYA ID',
       'Firma Adı',
       'Vergi No',
       'Sözleşme Tutarı',
@@ -126,14 +126,14 @@ describe('contract-record', () => {
     ]);
     const row = toContractSheetRow(contract({ tutar: '1250.75' }));
     expect(row[0]).toBe('SOZ-000001');
-    expect(row[1]).toBe('REC-000001');
+    expect(row[1]).toBe('DOS-000001');
     expect(row[4]).toBe('1.250,75');
   });
 
   it('fromContractSheetRow başlıklı ve başlıksız satırları okur, bozuk satırları atar', () => {
     const parsed = fromContractSheetRow([
       'SOZ-000001',
-      'REC-000001',
+      'DOS-000001',
       'ABC Ltd. Şti.',
       '1234567890',
       '1.250,75',
@@ -144,7 +144,7 @@ describe('contract-record', () => {
     expect(parsed?.kaydedilmeTarihi).toBe('2026-11-25T10:00:00.000Z');
 
     const legacy = fromContractSheetRow([
-      'REC-000001',
+      'DOS-000001',
       'ABC Ltd. Şti.',
       '1234567890',
       '1250,75',
@@ -156,13 +156,13 @@ describe('contract-record', () => {
 
     expect(fromContractSheetRow(['', ''])).toBeNull();
     expect(
-      fromContractSheetRow(['SOZ-000001', 'REC-000001', 'ABC', 'abc', '1', '2026-03-15']),
+      fromContractSheetRow(['SOZ-000001', 'DOS-000001', 'ABC', 'abc', '1', '2026-03-15']),
     ).toBeNull();
   });
 
   it('loadContracts geçersiz satırları atlayarak liste kurar', () => {
     const contracts = loadContracts([
-      ['SOZ-000001', 'REC-000001', 'ABC Ltd. Şti.', '1234567890', '1.250,75', '2026-03-15', ''],
+      ['SOZ-000001', 'DOS-000001', 'ABC Ltd. Şti.', '1234567890', '1.250,75', '2026-03-15', ''],
       ['bozuk'],
     ]);
     expect(contracts).toHaveLength(1);

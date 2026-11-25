@@ -44,17 +44,21 @@
     silme işlemleri anında yansır.
   </p>
 
-  @if (drive.error()) {
-    <p class="form-error">{{ drive.error() }}</p>
-  }
-  @if (saveMessage()) {
-    <p class="form-success">{{ saveMessage() }}</p>
-  }
-  @if (saveError()) {
-    <p class="form-error">{{ saveError() }}</p>
-  }
-  @if (syncError()) {
-    <p class="form-error">{{ syncError() }}</p>
+  <p class="table-note">
+    Kayıtlar Google Drive'daki "dosyalar" tablosuna otomatik yazılır; ekleme, düzenleme ve
+    silme işlemleri anında yansır.
+  </p>
+
+  @if (drive.error(); as driveError) {
+    <p class="form-error">{{ driveError }}</p>
+  } @else if (saveError(); as saveErrorText) {
+    <p class="form-error">{{ saveErrorText }}</p>
+  } @else if (syncError(); as syncErrorText) {
+    <p class="form-error">{{ syncErrorText }}</p>
+  } @else if (saveMessage(); as saveMessageText) {
+    <p class="form-success">{{ saveMessageText }}</p>
+  } @else {
+    <p class="form-status form-status--idle">Bilgi mesajı burada görünür.</p>
   }
 
   @if (records().length === 0) {
@@ -64,7 +68,7 @@
       <table class="records">
         <thead>
           <tr>
-            <th scope="col">Sıra No</th>
+            <th scope="col">DOSYA ID</th>
             <th scope="col">İşin adı</th>
             <th scope="col">Türü</th>
             <th scope="col">Usulü</th>
@@ -96,7 +100,7 @@
                   type="button"
                   class="action action--small"
                   [disabled]="!record.recordNumber"
-                  [title]="record.recordNumber ? 'Bu kayda sözleşme aç' : 'Sıra No bekleniyor'"
+                  [title]="record.recordNumber ? 'Bu kayda sözleşme aç' : 'DOSYA ID bekleniyor'"
                   (click)="openContracts(record)"
                 >
                   Sözleşme Aç
@@ -108,7 +112,7 @@
       </table>
     </div>
     <p class="table-note">
-      Kayıtlar Sıra No'ya göre sıralanır. "Sözleşme Aç" ile kayda bağlı sözleşmeleri yönetin.
+      Kayıtlar DOSYA ID'ye göre sıralanır. "Sözleşme Aç" ile kayda bağlı sözleşmeleri yönetin.
     </p>
   }
 </section>

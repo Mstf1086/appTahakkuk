@@ -122,6 +122,19 @@
   font-size: 0.875rem;
 }
 
+/* Bilgi/uyarı alanı her zaman yerinde durur; mesaj yokken yer tutucu gösterilir. */
+.form-status {
+  margin: 0;
+  padding: 0.7rem 0.85rem;
+  border-radius: 0.5rem;
+  font-size: 0.875rem;
+}
+
+.form-status--idle {
+  background: #f9fafb;
+  color: #9ca3af;
+}
+
 .form-error {
   margin: 0;
   padding: 0.7rem 0.85rem;

@@ -56,7 +56,7 @@ function setValue(fixture: { nativeElement: HTMLElement }, selector: string, val
 
 const sample = {
   id: 'r1',
-  recordNumber: 'REC-000001',
+  recordNumber: 'DOS-000001',
   isinAdi: 'Kırtasiye alımı',
   turu: 'mal',
   usulu: 'diger',
@@ -85,14 +85,14 @@ describe('DocumentsComponent', () => {
     }).compileComponents();
   });
 
-  it('kayıtları tablo halinde Sıra No sütunuyla listeler', () => {
+  it('kayıtları tablo halinde DOSYA ID sütunuyla listeler', () => {
     seed([sample]);
     const fixture = TestBed.createComponent(DocumentsComponent);
     fixture.detectChanges();
 
     const table = fixture.nativeElement.querySelector('.records') as HTMLTableElement;
-    expect(table.textContent).toContain('Sıra No');
-    expect(table.textContent).toContain('REC-000001');
+    expect(table.textContent).toContain('DOSYA ID');
+    expect(table.textContent).toContain('DOS-000001');
     expect(table.textContent).toContain('Kırtasiye alımı');
     expect(table.textContent).toContain('Mal');
   });
@@ -206,13 +206,13 @@ describe('DocumentsComponent', () => {
     expect(contractButtons).toHaveLength(1);
   });
 
-  it('Sıra No’suz eski kayda otomatik sıra no atanır', () => {
+  it('DOSYA ID’siz eski kayda otomatik kimlik atanır', () => {
     seed([{ ...sample, recordNumber: '' }]);
     const fixture = TestBed.createComponent(DocumentsComponent);
     fixture.detectChanges();
 
     const table = fixture.nativeElement.querySelector('.records') as HTMLTableElement;
-    expect(table.textContent).toMatch(/REC-\d{6}/);
+    expect(table.textContent).toMatch(/DOS-\d{6}/);
   });
 
   it('Drive bağlantısı açıkken modül açılışında satırlar otomatik listeye eklenir', async () => {
